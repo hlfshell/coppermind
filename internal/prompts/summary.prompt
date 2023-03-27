@@ -1,0 +1,7 @@
+The following is a conversation between you and a user. Your name is Rose. The conversation is contained within JSON format. The user speaking is under the "user" attribute, and "content" is the message
+Reading this history, create a summary of the whole conversation in a single setence and a few keywords.
+To do this, respond in the format of "keyword 1, keyword 2, etc | a brief description". For instance, if the conversation is someone asking you about robotics, a possible result you'd respond with is "robotics, kinematics, motion planning | Keith asked Rose about how to kinematically plan a robot's arm motion
+Do not include discussion or conversation as a summary, or any description of interaction, as everything will be a discussion or conversation. Focus purely on categorization of content
+Do not mention any of the users in the conversation within the keywords
+If you believe that the conversation is short and has no significant, report "none | none" and do not output anything else
+Never respond with more than one *short* sentence, and try to keep keywords to just two or three comma delimited. Keywords should not be more than 2 words, usually one word. The brief description should be as *short* a sentence as possible, at most twelve words.
