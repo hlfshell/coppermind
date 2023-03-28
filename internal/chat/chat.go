@@ -4,15 +4,24 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
+
+type Conversation struct {
+	ID        string    `json:"id,omitempty" db:"id"`
+	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
+	Agent     string    `json:"agent,omitempty" db:"agent"`
+	User      string    `json:"user,omitempty" db:"user"`
+}
 
 type Message struct {
 	ID           string    `json:"id,omitempty"`
-	Conversation string    `json:"conversation,omitempty"`
-	User         string    `json:"user,omitempty"`
-	Content      string    `json:"content,omitempty"`
-	Tone         string    `json:"tone,omitempty"`
-	Time         time.Time `json:"time,omitempty"`
+	Conversation string    `json:"conversation,omitempty" db:"conversation"`
+	User         string    `json:"user,omitempty" db:"user"`
+	Content      string    `json:"content,omitempty" db:"message"`
+	Tone         string    `json:"tone,omitempty" db:"tone"`
+	CreatedAt    time.Time `json:"created_at,omitempty" db:"created_at"`
 }
 
 func (msg *Message) String() string {
@@ -23,8 +32,16 @@ func (msg *Message) String() string {
 	str.WriteString(" | ")
 	str.WriteString(msg.Content)
 	str.WriteString(" | ")
-	str.WriteString(msg.Time.String())
+	str.WriteString(msg.CreatedAt.String())
 
+	return str.String()
+}
+
+func (msg *Message) SimpleString() string {
+	var str strings.Builder
+	str.WriteString(msg.User)
+	str.WriteString(" | ")
+	str.WriteString(msg.Content)
 	return str.String()
 }
 
@@ -44,10 +61,11 @@ type Response struct {
 
 func (response *Response) ToMessage(conversation string) *Message {
 	return &Message{
+		ID:           uuid.New().String(),
 		User:         response.Name,
 		Tone:         response.Tone,
 		Content:      response.Content,
-		Time:         time.Now(),
+		CreatedAt:    time.Now(),
 		Conversation: conversation,
 	}
 }

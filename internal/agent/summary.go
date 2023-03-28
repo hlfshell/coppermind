@@ -9,7 +9,7 @@ import (
 func (agent *Agent) Summarize(conversation string) (*memory.Summary, error) {
 	// First we get all of the messages in that conversation
 	// that we'll be trying to summarize
-	msgs, err := agent.db.LoadConversationHistory(conversation)
+	msgs, err := agent.db.LoadConversationMessages(conversation)
 	if err != nil {
 		return nil, err
 	}
@@ -26,13 +26,8 @@ func (agent *Agent) Summarize(conversation string) (*memory.Summary, error) {
 	return summary, err
 }
 
-func (agent *Agent) IdentifyConversationsToIdentify() ([]string, error) {
-	return []string{"61f5ea47-7e1f-4326-8b13-042b32b83c0a"}, nil
-	// return nil, nil
-}
-
 func (agent *Agent) SummaryDaemon() error {
-	conversations, err := agent.IdentifyConversationsToIdentify()
+	conversations, err := agent.db.GetConversationsToUpdate()
 	if err != nil {
 		return err
 	}

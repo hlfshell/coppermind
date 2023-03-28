@@ -13,7 +13,6 @@ func (agent *Agent) KnowledgeDaemon() error {
 	}
 
 	for _, conversation := range conversations {
-		fmt.Println("extracting")
 		knowledge, err := agent.ExtractKnowledge(conversation)
 		if err != nil {
 			return err
@@ -27,7 +26,7 @@ func (agent *Agent) KnowledgeDaemon() error {
 }
 
 func (agent *Agent) ExtractKnowledge(conversaton string) ([]*memory.Knowledge, error) {
-	history, err := agent.db.LoadConversationHistory(conversaton)
+	history, err := agent.db.LoadConversationMessages(conversaton)
 	if err != nil {
 		return nil, err
 	}

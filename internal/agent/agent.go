@@ -13,6 +13,8 @@ import (
 )
 
 type Agent struct {
+	Name string
+
 	db  store.Store
 	llm llm.LLM
 
@@ -28,7 +30,7 @@ type Agent struct {
 	knowledgeInstructions []*chat.Prompt
 }
 
-func NewAgent(db store.Store, llm llm.LLM) *Agent {
+func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 	instructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Instructions}}
 	identity := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Identity}}
 
@@ -37,6 +39,7 @@ func NewAgent(db store.Store, llm llm.LLM) *Agent {
 	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
 
 	agent := &Agent{
+		Name:                name,
 		db:                  db,
 		llm:                 llm,
 		chatInstructions:    instructions,
@@ -46,6 +49,11 @@ func NewAgent(db store.Store, llm llm.LLM) *Agent {
 
 		knowledgeInstructions: knowledgeInstructions,
 	}
+
+	// err := agent.KnowledgeDaemon()
+	// fmt.Println("done")
+	// fmt.Println(err)
+	// os.Exit(3)
 
 	// go func() {
 	// 	for {
@@ -94,16 +102,25 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 }
 
 func (agent *Agent) GenerateOrFindConversation(user string) (string, error) {
-	conversation, timestamp, err := agent.db.GetLatestConversation(user)
+	conversation, timestamp, err := agent.db.GetLatestConversation(agent.Name, user)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	if time.Now().After(timestamp.Add(5*time.Minute)) || conversation == "" {
 		conversation = uuid.New().String()
+		err = agent.db.SaveConversation(&chat.Conversation{
+			ID:        conversation,
+			Agent:     agent.Name,
+			User:      user,
+			CreatedAt: time.Now(),
+		})
+		if err != nil {
+			return "", err
+		}
 	}
 	return conversation, nil
 }
 
 func (agent *Agent) loadConversationHistory(conversation string) ([]*chat.Message, error) {
-	return agent.db.LoadConversationHistory(conversation)
+	return agent.db.LoadConversationMessages(conversation)
 }

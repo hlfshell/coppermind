@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/agent"
 	"github.com/hlfshell/coppermind/internal/chat"
 	"github.com/hlfshell/coppermind/internal/llm"
-	"github.com/hlfshell/coppermind/internal/store"
+	"github.com/hlfshell/coppermind/internal/store/sqlite"
 
 	"github.com/urfave/cli/v2"
 )
@@ -38,7 +39,7 @@ func main() {
 }
 
 func run(name string, sqliteFile string) {
-	store, err := store.NewSqliteStore(sqliteFile)
+	store, err := sqlite.NewSqliteStore(sqliteFile)
 	if err != nil {
 		fmt.Println("SQL error")
 		fmt.Println(err)
@@ -57,7 +58,7 @@ func run(name string, sqliteFile string) {
 	}
 	openai := llm.NewOpenAI(apiKey)
 
-	agent := agent.NewAgent(store, openai)
+	agent := agent.NewAgent("Rose", store, openai)
 
 	fmt.Println("Talk to your bot")
 
@@ -65,11 +66,11 @@ func run(name string, sqliteFile string) {
 		message := InputPrompt(">> ")
 
 		msg := &chat.Message{
-			ID:           "abc123",
-			Conversation: "1",
+			ID:           uuid.New().String(),
+			Conversation: "",
 			User:         name,
 			Tone:         "",
-			Time:         time.Now(),
+			CreatedAt:    time.Now(),
 			Content:      message,
 		}
 
