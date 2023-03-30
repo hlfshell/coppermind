@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/hlfshell/coppermind/internal/chat"
+	"github.com/hlfshell/coppermind/internal/memory"
 )
 
 // Store interface is the heart of our system's memory - it
@@ -48,18 +49,18 @@ type Store interface {
 	//===============================
 	//Summaries
 	//===============================
+	//SaveSummary will upsert a given summary into the store
+	SaveSummary(summary *memory.Summary) error
 	//GetConversationsToUpdate will find any conversation past
 	//a certain size or age that does not yet have a summary,
 	//or return summaries that have summaries but have additional
 	//messages to include in its summary consideration
-	// GetConversationsToUpdate() ([]string, error)
-	//GetSummbaryByconversation will return the summary associated
+	GetConversationsToSummarize() ([]string, error)
+	//GetSummbaryByConversation will return the summary associated
 	//with a specific summmary. If none exists, summary pointer
 	//will be nil
-	// GetSummaryByConversation(conversation string) (*memory.Summary, error)
+	GetSummaryByConversation(conversation string) (*memory.Summary, error)
 	//GetsummariesByUser will return all summaries associated
 	//with a given user in oldest to latest order of time
 	// GetSummariesByUser(user string) ([]*memory.Summary, error)
-	//SaveSummary will upsert a given summary into the store
-	// SaveSummary(summary *memory.Summary) error
 }

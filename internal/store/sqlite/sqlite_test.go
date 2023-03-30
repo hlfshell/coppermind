@@ -58,22 +58,38 @@ func TestGetLatestConversation(t *testing.T) {
 	})
 }
 
-func testSaveMessage(t *testing.T) {
+func TestSaveMessage(t *testing.T) {
+	sqlite, err := CreateSqlLiteStore()
+	assert.Nil(t, err)
 
+	t.Run("TestSqliteSaveMessage", func(t *testing.T) {
+		storeTest.SaveMessage(t, sqlite)
+	})
 }
 
-func LoadConversationMessages(t *testing.T) {
+func TestGetConversationsToSummarize(t *testing.T) {
+	sqlite, err := CreateSqlLiteStore()
+	assert.Nil(t, err)
 
+	t.Run("TestSqliteGetConversationsToSummarize", func(t *testing.T) {
+		storeTest.GetConversationsToSummarize(t, sqlite)
+	})
 }
 
-func GetConversationsToUpdate(t *testing.T) {
+func TestGetSummaryByConversation(t *testing.T) {
+	sqlite, err := CreateSqlLiteStore()
+	assert.Nil(t, err)
 
+	t.Run("TestSqliteGetSummaryByConversation", func(t *testing.T) {
+		storeTest.GetSummaryByConversation(t, sqlite)
+	})
 }
 
-func GetSummaryByConversation(t *testing.T) {
+func TestSaveSummary(t *testing.T) {
+	sqlite, err := CreateSqlLiteStore()
+	assert.Nil(t, err)
 
-}
-
-func SaveSummary(t *testing.T) {
-
+	t.Run("TestSqliteSaveSummary", func(t *testing.T) {
+		storeTest.SaveSummary(t, sqlite)
+	})
 }

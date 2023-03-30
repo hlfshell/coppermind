@@ -167,16 +167,6 @@ func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversati
 // }
 
 func (store *SqliteStore) GetLatestConversation(agent string, user string) (string, time.Time, error) {
-	// query := ` SELECT
-	// 	conversations.id as conversation_id,
-	// 	MAX(messages.created_at) as latest_message
-	// FROM {0} AS conversations
-	// LEFT JOIN {1} AS messages
-	// ON conversations.id = messages.conversation
-	// GROUP BY conversations.id
-	// ORDER BY latest_message ASC
-	// LIMIT 1;
-	// `
 	query := `SELECT
 		conversation,
 		MAX(created_at) as latest_message
@@ -188,7 +178,6 @@ func (store *SqliteStore) GetLatestConversation(agent string, user string) (stri
 	LIMIT 1;
 	`
 
-	// query = stringFormatter.Format(query, CONVERSATIONS_TABLE, MESSAGES_TABLE)
 	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
 	row, err := store.db.Query(query, agent, user)
@@ -218,27 +207,6 @@ func (store *SqliteStore) GetLatestConversation(agent string, user string) (stri
 
 	return conversation.String, timestamp, nil
 }
-
-// func (store *SqliteStore) LoadConversationMessages(conversation string) ([]*chat.Message, error) {
-// 	query := `SELECT
-// 	user,
-// 	message,
-// 	tone,
-// 	conversation,
-// 	created_at
-// 	FROM {0}
-// 	WHERE conversation = ?`
-
-// 	query = stringFormatter.Format(query, MESSAGES_TABLE)
-
-// 	results, err := store.db.Query(query, conversation)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return store.sqlToMessages(results)
-// }
 
 func (store *SqliteStore) GetSummariesByUser(user string) ([]*memory.Summary, error) {
 	query := `SELECT (
@@ -275,7 +243,7 @@ func (store *SqliteStore) GetSummaryByConversation(conversation string) (*memory
 		user,
 		keywords,
 		summary,
-		created_at
+		updated_at
 	FROM {0} WHERE conversation = ?`
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
@@ -306,7 +274,7 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
         user,
         keywords,
         summary,
-		created_at
+		updated_at
 	)
 	VALUES(?, ?, ?, ?, ?, ?, ?)`
 
@@ -320,28 +288,31 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 		summary.User,
 		summary.KeywordsToString(),
 		summary.Summary,
-		summary.CreatedAt,
+		summary.UpdatedAt,
 	)
 
 	return err
 }
 
-func (store *SqliteStore) GetConversationsToUpdate() ([]string, error) {
+func (store *SqliteStore) GetConversationsToSummarize() ([]string, error) {
 	query := `
-	SELECT DISTINCT {0}.id
-	FROM {0}
-	LEFT OUTER JOIN {1} ON {0}.id = {1}.conversation
-	LEFT OUTER JOIN (
-		SELECT conversation, MAX(created_at) AS latest_message
-			FROM {2}
-			GROUP BY conversation
-		) latest_messages ON Conversations_V1.id = latest_messages.conversation
-	WHERE
-		Summaries_V1.id IS NULL
-		OR latest_messages.latest_message > Summaries_V1.created_at
+		WITH target_conversations AS(
+		SELECT
+			messages.conversation as conversationId,
+			MAX(messages.created_at) as latest_message,
+			summaries.id as summary,
+			summaries.updated_at as summary_updated_at
+		FROM {0} AS messages LEFT JOIN {1} AS summaries
+			ON messages.conversation = summaries.conversation
+		GROUP BY messages.conversation
+		HAVING
+			summary IS NULL OR
+			MAX(messages.created_at) > summaries.updated_at
+		)
+		SELECT conversationId FROM target_conversations;
 	`
 
-	query = stringFormatter.Format(query, CONVERSATIONS_TABLE, SUMMARIES_TABLE, MESSAGES_TABLE)
+	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, MESSAGES_TABLE)
 
 	rows, err := store.db.Query(query)
 	if err != nil {
@@ -404,7 +375,9 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 
 		err := rows.Scan(
 			&summary.ID,
+			&summary.Conversation,
 			&summary.Agent,
+			&summary.User,
 			&keywords,
 			&summary.Summary,
 			&datetime,
@@ -416,7 +389,7 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 		if err != nil {
 			return nil, err
 		}
-		summary.CreatedAt = timestamp
+		summary.UpdatedAt = timestamp
 
 		summary.StringToKeywords(keywords)
 
