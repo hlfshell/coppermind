@@ -5,14 +5,14 @@ CREATE TABLE IF NOT EXISTS
         agent TEXT NOT NULL,
         user VARCHAR NOT NULL,
         keywords TEXT,
-        summary TEXT,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW,
+        summary TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW
 
         -- FOREIGN KEY (agent)
         --     REFERENCES Agents_V1(id),
         
-        FOREIGN KEY (conversation)
-            REFERENCES Conversations_V1(id)
+        -- FOREIGN KEY (conversation)
+        --     REFERENCES Conversations_V1(id)
     );
 
 CREATE UNIQUE INDEX IF NOT EXISTS summaries_id_v1 ON Summaries_V1(id);

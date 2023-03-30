@@ -60,8 +60,8 @@ func (store *SqliteStore) Migrate() error {
 }
 
 func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
-	query := `INSERT INTO {0} (id, user, message, tone, created_at, conversation)
-	VALUES(?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO {0} (id, user, agent, content, tone, created_at, conversation)
+	VALUES(?, ?, ?, ?, ?, ?, ?)`
 
 	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
@@ -69,6 +69,7 @@ func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
 		query,
 		msg.ID,
 		msg.User,
+		msg.Agent,
 		msg.Content,
 		msg.Tone,
 		msg.CreatedAt,
@@ -79,62 +80,116 @@ func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
 }
 
 func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversation, error) {
-	query := `
-		SELECT (id, agent, user, created_at)
-		FROM {0} WHERE id = ?
+	query := `SELECT
+		id,
+		conversation,
+		user,
+		agent,
+		content,
+		tone,
+		created_at
+	FROM {0} WHERE conversation = ?
 	`
-	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
+
+	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
 	rows, err := store.db.Query(query, conversation)
 	if err != nil {
+		return nil, err
+	}
+	messages, err := store.sqlToMessages(rows)
+	if err != nil {
+		return nil, nil
+	} else if len(messages) == 0 {
 		return nil, nil
 	}
 
-	var result chat.Conversation
-	for rows.Next() {
-		err = rows.Scan(
-			&result.ID,
-			&result.Agent,
-			&result.User,
-			&result.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &result, nil
+	return &chat.Conversation{
+		ID:        conversation,
+		User:      messages[0].User,
+		Agent:     messages[0].Agent,
+		CreatedAt: messages[0].CreatedAt,
+		Messages:  messages,
+	}, nil
 }
 
-func (store *SqliteStore) SaveConversation(conversation *chat.Conversation) error {
-	query := `INSERT INTO {0} (id, agent, user, created_at)
-	VALUES(?, ?, ?, ?)`
+// func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversation, error) {
+// 	query := `
+// 		SELECT id, agent, user, created_at
+// 		FROM {0} WHERE id = ?
+// 	`
+// 	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
 
-	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
+// 	rows, err := store.db.Query(query, conversation)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	_, err := store.db.Exec(
-		query,
-		conversation.ID,
-		conversation.Agent,
-		conversation.User,
-		conversation.CreatedAt,
-	)
+// 	defer rows.Close()
 
-	return err
-}
+// 	var result *chat.Conversation
+// 	var datetime string
+// 	for rows.Next() {
+// 		result = &chat.Conversation{}
+// 		err = rows.Scan(
+// 			&result.ID,
+// 			&result.Agent,
+// 			&result.User,
+// 			&datetime,
+// 		)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		timestamp, err := store.sqlTimestampToTime(datetime)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		result.CreatedAt = timestamp
+// 	}
+// 	return result, nil
+// }
+
+// func (store *SqliteStore) SaveConversation(conversation *chat.Conversation) error {
+// 	query := `INSERT INTO {0} (id, agent, user, created_at)
+// 	VALUES(?, ?, ?, ?)`
+
+// 	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
+
+// 	_, err := store.db.Exec(
+// 		query,
+// 		conversation.ID,
+// 		conversation.Agent,
+// 		conversation.User,
+// 		conversation.CreatedAt,
+// 	)
+
+// 	return err
+// }
 
 func (store *SqliteStore) GetLatestConversation(agent string, user string) (string, time.Time, error) {
-	query := ` SELECT
-		conversations.id as conversation_id,
-		MAX(messages.created_at) as latest_message
-	FROM {0} AS conversations
-	LEFT JOIN {1} AS messages
-	ON conversations.id = messages.conversation
-	GROUP BY conversations.id
-	ORDER BY latest_message DESC
+	// query := ` SELECT
+	// 	conversations.id as conversation_id,
+	// 	MAX(messages.created_at) as latest_message
+	// FROM {0} AS conversations
+	// LEFT JOIN {1} AS messages
+	// ON conversations.id = messages.conversation
+	// GROUP BY conversations.id
+	// ORDER BY latest_message ASC
+	// LIMIT 1;
+	// `
+	query := `SELECT
+		conversation,
+		MAX(created_at) as latest_message
+	FROM {0}
+	WHERE
+		agent = ? AND
+		user = ?
+	GROUP BY conversation
 	LIMIT 1;
 	`
 
-	query = stringFormatter.Format(query, CONVERSATIONS_TABLE, MESSAGES_TABLE)
+	// query = stringFormatter.Format(query, CONVERSATIONS_TABLE, MESSAGES_TABLE)
+	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
 	row, err := store.db.Query(query, agent, user)
 	if err != nil {
@@ -143,44 +198,47 @@ func (store *SqliteStore) GetLatestConversation(agent string, user string) (stri
 
 	defer row.Close()
 
-	var timestring string
-	var conversation string
+	var timestring sql.NullString
 	var timestamp time.Time
+	var conversation sql.NullString
 
 	for row.Next() {
 		err = row.Scan(&conversation, &timestring)
 		if err != nil {
 			return "", time.Time{}, err
 		}
-		timestamp, err = time.Parse("2006-01-02 15:04:05.999999999-07:00", timestring)
+		if !conversation.Valid || !timestring.Valid {
+			return "", time.Time{}, nil
+		}
+		timestamp, err = store.sqlTimestampToTime(timestring.String)
 		if err != nil {
 			return "", time.Time{}, err
 		}
 	}
 
-	return conversation, timestamp, nil
+	return conversation.String, timestamp, nil
 }
 
-func (store *SqliteStore) LoadConversationMessages(conversation string) ([]*chat.Message, error) {
-	query := `SELECT
-	user,
-	message,
-	tone,
-	conversation,
-	created_at
-	FROM {0}
-	WHERE conversation = ?`
+// func (store *SqliteStore) LoadConversationMessages(conversation string) ([]*chat.Message, error) {
+// 	query := `SELECT
+// 	user,
+// 	message,
+// 	tone,
+// 	conversation,
+// 	created_at
+// 	FROM {0}
+// 	WHERE conversation = ?`
 
-	query = stringFormatter.Format(query, MESSAGES_TABLE)
+// 	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
-	results, err := store.db.Query(query, conversation)
+// 	results, err := store.db.Query(query, conversation)
 
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return store.sqlToMessages(results)
-}
+// 	return store.sqlToMessages(results)
+// }
 
 func (store *SqliteStore) GetSummariesByUser(user string) ([]*memory.Summary, error) {
 	query := `SELECT (
@@ -310,16 +368,24 @@ func (store *SqliteStore) sqlToMessages(rows *sql.Rows) ([]*chat.Message, error)
 
 	for rows.Next() {
 		var msg chat.Message
+		var datetime string
 		err := rows.Scan(
+			&msg.ID,
+			&msg.Conversation,
 			&msg.User,
+			&msg.Agent,
 			&msg.Content,
 			&msg.Tone,
-			&msg.Conversation,
-			&msg.CreatedAt,
+			&datetime,
 		)
 		if err != nil {
 			return nil, err
 		}
+		timestamp, err := store.sqlTimestampToTime(datetime)
+		if err != nil {
+			return nil, err
+		}
+		msg.CreatedAt = timestamp
 		messages = append(messages, &msg)
 	}
 
@@ -334,17 +400,23 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 	for rows.Next() {
 		var summary memory.Summary
 		var keywords string
+		var datetime string
 
 		err := rows.Scan(
 			&summary.ID,
 			&summary.Agent,
 			&keywords,
 			&summary.Summary,
-			&summary.CreatedAt,
+			&datetime,
 		)
 		if err != nil {
 			return nil, err
 		}
+		timestamp, err := store.sqlTimestampToTime(datetime)
+		if err != nil {
+			return nil, err
+		}
+		summary.CreatedAt = timestamp
 
 		summary.StringToKeywords(keywords)
 
@@ -352,4 +424,8 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 	}
 
 	return summaries, nil
+}
+
+func (store *SqliteStore) sqlTimestampToTime(timestamp string) (time.Time, error) {
+	return time.Parse(time.RFC3339, timestamp)
 }
