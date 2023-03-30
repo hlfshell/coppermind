@@ -268,7 +268,7 @@ func (store *SqliteStore) GetSummaryByConversation(conversation string) (*memory
 }
 
 func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
-	query := `INSERT INTO {0} (
+	query := `INSERT OR REPLACE INTO {0} (
 		id,
 		conversation,
         agent,
