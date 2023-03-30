@@ -14,7 +14,6 @@ import (
 )
 
 const MESSAGES_TABLE = "Messages_V1"
-const CONVERSATIONS_TABLE = "Conversations_V1"
 const SUMMARIES_TABLE = "Summaries_V1"
 
 //go:embed sql/*.sql
@@ -112,59 +111,6 @@ func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversati
 		Messages:  messages,
 	}, nil
 }
-
-// func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversation, error) {
-// 	query := `
-// 		SELECT id, agent, user, created_at
-// 		FROM {0} WHERE id = ?
-// 	`
-// 	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
-
-// 	rows, err := store.db.Query(query, conversation)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	defer rows.Close()
-
-// 	var result *chat.Conversation
-// 	var datetime string
-// 	for rows.Next() {
-// 		result = &chat.Conversation{}
-// 		err = rows.Scan(
-// 			&result.ID,
-// 			&result.Agent,
-// 			&result.User,
-// 			&datetime,
-// 		)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		timestamp, err := store.sqlTimestampToTime(datetime)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		result.CreatedAt = timestamp
-// 	}
-// 	return result, nil
-// }
-
-// func (store *SqliteStore) SaveConversation(conversation *chat.Conversation) error {
-// 	query := `INSERT INTO {0} (id, agent, user, created_at)
-// 	VALUES(?, ?, ?, ?)`
-
-// 	query = stringFormatter.Format(query, CONVERSATIONS_TABLE)
-
-// 	_, err := store.db.Exec(
-// 		query,
-// 		conversation.ID,
-// 		conversation.Agent,
-// 		conversation.User,
-// 		conversation.CreatedAt,
-// 	)
-
-// 	return err
-// }
 
 func (store *SqliteStore) GetLatestConversation(agent string, user string) (string, time.Time, error) {
 	query := `SELECT
