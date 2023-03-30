@@ -175,6 +175,7 @@ func (store *SqliteStore) GetLatestConversation(agent string, user string) (stri
 		agent = ? AND
 		user = ?
 	GROUP BY conversation
+	ORDER BY latest_message DESC
 	LIMIT 1;
 	`
 
@@ -216,7 +217,7 @@ func (store *SqliteStore) GetSummariesByUser(user string) ([]*memory.Summary, er
 		user,
 		keywords,
 		summary,
-		created_at
+		updated_at
 	) FROM {0} WHERE user = ?
 	`
 
@@ -400,5 +401,12 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 }
 
 func (store *SqliteStore) sqlTimestampToTime(timestamp string) (time.Time, error) {
-	return time.Parse(time.RFC3339, timestamp)
+	parsed, err := time.Parse(time.RFC3339, timestamp)
+	if err != nil {
+		parsed, err = time.Parse("2006-01-02 15:04:05.999999999-07:00", timestamp)
+		if err != nil {
+			return time.Time{}, err
+		}
+	}
+	return parsed, nil
 }

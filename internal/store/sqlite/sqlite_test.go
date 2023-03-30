@@ -3,13 +3,13 @@ package sqlite
 import (
 	"testing"
 
+	"github.com/hlfshell/coppermind/internal/store"
 	storeTest "github.com/hlfshell/coppermind/internal/test/store"
 	"github.com/stretchr/testify/assert"
 )
 
 func CreateSqlLiteStore() (*SqliteStore, error) {
 	store, err := NewSqliteStore(":memory:")
-	// store, err := NewSqliteStore("./testing.db")
 	if err != nil {
 		return nil, err
 	}
@@ -23,56 +23,22 @@ func TestMigrate(t *testing.T) {
 
 }
 
-func TestGetConversations(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
+func TestSqlite(t *testing.T) {
+	tests := map[string]func(*testing.T, store.Store){
+		"GetLatestConversation":       storeTest.GetLatestConversation,
+		"GetConversations":            storeTest.GetConversation,
+		"SaveMessage":                 storeTest.SaveMessage,
+		"GetConversationsToSummarize": storeTest.GetConversationsToSummarize,
+		"GetSummaryByConversation":    storeTest.GetSummaryByConversation,
+		"SaveSummary":                 storeTest.SaveSummary,
+	}
 
-	t.Run("TestSqliteGetConversation", func(t *testing.T) {
-		storeTest.GetConversation(t, sqlite)
-	})
-}
+	for name, test := range tests {
+		t.Run("TestSqlite"+name, func(t *testing.T) {
+			sqlite, err := CreateSqlLiteStore()
 
-func TestGetLatestConversation(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
-
-	t.Run("TestSqliteGetLatestConversation", func(t *testing.T) {
-		storeTest.GetConversation(t, sqlite)
-	})
-}
-
-func TestSaveMessage(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
-
-	t.Run("TestSqliteSaveMessage", func(t *testing.T) {
-		storeTest.SaveMessage(t, sqlite)
-	})
-}
-
-func TestGetConversationsToSummarize(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
-
-	t.Run("TestSqliteGetConversationsToSummarize", func(t *testing.T) {
-		storeTest.GetConversationsToSummarize(t, sqlite)
-	})
-}
-
-func TestGetSummaryByConversation(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
-
-	t.Run("TestSqliteGetSummaryByConversation", func(t *testing.T) {
-		storeTest.GetSummaryByConversation(t, sqlite)
-	})
-}
-
-func TestSaveSummary(t *testing.T) {
-	sqlite, err := CreateSqlLiteStore()
-	assert.Nil(t, err)
-
-	t.Run("TestSqliteSaveSummary", func(t *testing.T) {
-		storeTest.SaveSummary(t, sqlite)
-	})
+			assert.Nil(t, err)
+			test(t, sqlite)
+		})
+	}
 }
