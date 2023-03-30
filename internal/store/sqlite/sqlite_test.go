@@ -23,14 +23,6 @@ func TestMigrate(t *testing.T) {
 
 }
 
-// func TestGetConversation(t *testing.T) {
-// 	sqlite, err := CreateSqlLiteStore()
-// 	assert.Nil(t, err)
-
-//		t.Run("TestSqliteGetConversation", func(t *testing.T) {
-//			storeTest.GetConversation(t, sqlite)
-//		})
-//	}
 func TestGetConversations(t *testing.T) {
 	sqlite, err := CreateSqlLiteStore()
 	assert.Nil(t, err)
@@ -39,15 +31,6 @@ func TestGetConversations(t *testing.T) {
 		storeTest.GetConversation(t, sqlite)
 	})
 }
-
-// func TestSaveConversation(t *testing.T) {
-// 	sqlite, err := CreateSqlLiteStore()
-// 	assert.Nil(t, err)
-
-// 	t.Run("TestSqliteSaveConversation", func(t *testing.T) {
-// 		storeTest.SaveConversation(t, sqlite)
-// 	})
-// }
 
 func TestGetLatestConversation(t *testing.T) {
 	sqlite, err := CreateSqlLiteStore()

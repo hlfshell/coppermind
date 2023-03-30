@@ -23,18 +23,6 @@ type Store interface {
 	Migrate() error
 
 	//===============================
-	//Conversation Functions
-	//===============================
-	//GetConversation will return the metadata for a given
-	//conversation
-	// GetConversation(conversation string) (*chat.Conversation, error)
-	//SaveConversation will create a new conversation
-	// SaveConversation(conversation *chat.Conversation) error
-	// //GetLatestConversation will, given an agent and user, return
-	// //the latest configuration and the time of its last message
-	// GetLatestConversation(agent string, user string) (string, time.Time, error)
-
-	//===============================
 	//Messages
 	//===============================
 	//SaveMessage will upsert save a given message.
@@ -56,7 +44,7 @@ type Store interface {
 	//or return summaries that have summaries but have additional
 	//messages to include in its summary consideration
 	GetConversationsToSummarize() ([]string, error)
-	//GetSummbaryByConversation will return the summary associated
+	//GetSummaryByConversation will return the summary associated
 	//with a specific summmary. If none exists, summary pointer
 	//will be nil
 	GetSummaryByConversation(conversation string) (*memory.Summary, error)
