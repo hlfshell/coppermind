@@ -14,7 +14,41 @@ type Summary struct {
 	Keywords     []string  `json:"keywords,omitempty" db:"keywords"`
 	Summary      string    `json:"summary,omitempty" db:"summary"`
 	User         string    `json:"user,omitempty" db:"user"`
-	CreatedAt    time.Time `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at,omitempty" db:"updated_at"`
+}
+
+func (summary *Summary) Equal(other *Summary) bool {
+	timeDifference := summary.UpdatedAt.Sub(other.UpdatedAt)
+	if timeDifference < 0 {
+		timeDifference = -timeDifference
+	}
+	if timeDifference > time.Second {
+		return false
+	}
+
+	keywordCheck := map[string]bool{}
+	for _, keyword := range summary.Keywords {
+		keywordCheck[keyword] = false
+	}
+	for _, keyword := range other.Keywords {
+		if _, ok := keywordCheck[keyword]; ok {
+			keywordCheck[keyword] = ok
+		} else {
+			return false
+		}
+	}
+	for _, keyword := range summary.Keywords {
+		if !keywordCheck[keyword] {
+			return false
+		}
+	}
+
+	return summary.ID == other.ID &&
+		summary.Agent == other.Agent &&
+		summary.User == other.User &&
+		summary.Conversation == other.Conversation &&
+		summary.Summary == other.Summary
+
 }
 
 func (summary *Summary) KeywordsToString() string {
