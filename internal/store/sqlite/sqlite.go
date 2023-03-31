@@ -15,6 +15,7 @@ import (
 
 const MESSAGES_TABLE = "Messages_V1"
 const SUMMARIES_TABLE = "Summaries_V1"
+const SUMMARY_EXCLUSION_TABLE = "SummaryExclusion_V1"
 
 //go:embed sql/*.sql
 var sqlFolder embed.FS
@@ -241,27 +242,48 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 	return err
 }
 
-func (store *SqliteStore) GetConversationsToSummarize() ([]string, error) {
+func (store *SqliteStore) GetConversationsToSummarize(minMessages int, minAge time.Duration, maxLength int) ([]string, error) {
+	ageTime := time.Now().Add(-1 * minAge)
+
+	// query := `
+	// 	WITH target_conversations AS(
+	// 	SELECT
+	// 		messages.conversation as conversationId,
+	// 		MAX(messages.created_at) as latest_message,
+	// 		summaries.id as summary,
+	// 		summaries.updated_at as summary_updated_at
+	// 	FROM {0} AS messages LEFT JOIN {1} AS summaries
+	// 		ON messages.conversation = summaries.conversation
+	// 	GROUP BY messages.conversation
+	// 	HAVING
+	// 		summary IS NULL OR
+	// 		MAX(messages.created_at) > summaries.updated_at
+	// 	)
+	// 	SELECT conversationId FROM target_conversations;
+	// `
 	query := `
-		WITH target_conversations AS(
-		SELECT
-			messages.conversation as conversationId,
-			MAX(messages.created_at) as latest_message,
-			summaries.id as summary,
-			summaries.updated_at as summary_updated_at
-		FROM {0} AS messages LEFT JOIN {1} AS summaries
-			ON messages.conversation = summaries.conversation
-		GROUP BY messages.conversation
-		HAVING
-			summary IS NULL OR
-			MAX(messages.created_at) > summaries.updated_at
+		WITH target_conversations AS (
+			SELECT
+				messages.conversation as conversationId,
+				MAX(messages.created_at) as latest_message,
+				summaries.id as summary,
+				summaries.updated_at as summary_updated_at
+			FROM {0} AS messages 
+			LEFT JOIN {1} AS summaries ON messages.conversation = summaries.conversation
+			LEFT JOIN {2} AS exclusion ON messages.conversation = exclusion.conversation
+			WHERE exclusion.conversation IS NULL 
+			GROUP BY messages.conversation
+			HAVING 
+				(summary IS NULL OR MAX(messages.created_at) > summaries.updated_at) AND 
+				((latest_message >= ? AND COUNT(messages.id) >= ?) OR COUNT(messages.id) >= ?)
 		)
-		SELECT conversationId FROM target_conversations;
+		SELECT conversationId 
+		FROM target_conversations;
 	`
 
-	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, MESSAGES_TABLE)
+	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, SUMMARY_EXCLUSION_TABLE)
 
-	rows, err := store.db.Query(query)
+	rows, err := store.db.Query(query, ageTime, minMessages, maxLength)
 	if err != nil {
 		return nil, err
 	}
@@ -277,6 +299,20 @@ func (store *SqliteStore) GetConversationsToSummarize() ([]string, error) {
 	}
 
 	return conversations, nil
+}
+
+func (store *SqliteStore) ExcludeConversationFromSummary(conversation string) error {
+	query := `
+		INSERT INTO {0} (
+			conversation,
+			created_at
+		) VALUES(?, ?)
+	`
+
+	query = stringFormatter.Format(query, SUMMARY_EXCLUSION_TABLE)
+
+	_, err := store.db.Exec(query, conversation, time.Now())
+	return err
 }
 
 func (store *SqliteStore) sqlToMessages(rows *sql.Rows) ([]*chat.Message, error) {

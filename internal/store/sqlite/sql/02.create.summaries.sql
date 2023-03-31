@@ -15,11 +15,8 @@ CREATE INDEX IF NOT EXISTS summaries_agent_user_time_V1 ON Summaries_V1(agent, u
 
 CREATE TABLE IF NOT EXISTS
     SummaryExclusion_V1(
-        summary TEXT NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW,
+        conversation TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW
+    );
 
-        FOREIGN KEY (summary)
-            REFERENCES Summaries_V1(id)
-    )
-
-CREATE UNIQUE INDEX IF NOT EXISTS summary_exclusion_v1 ON SummaryExclusion_V1(summary);
+CREATE UNIQUE INDEX IF NOT EXISTS summary_exclusion_v1 ON SummaryExclusion_V1(conversation);

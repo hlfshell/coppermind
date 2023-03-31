@@ -84,7 +84,7 @@ type Store interface {
 				thus we need to create summaries regularly and update
 				it as the conversation moves along.
 	*/
-	GetConversationsToSummarize() ([]string, error)
+	GetConversationsToSummarize(minMessages int, minAge time.Duration, maxLength int) ([]string, error)
 
 	/*
 		GetSummaryByConversation will return the summary associated

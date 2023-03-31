@@ -5,7 +5,7 @@ import (
 
 	"github.com/hlfshell/coppermind/internal/store"
 	storeTest "github.com/hlfshell/coppermind/internal/test/store"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func CreateSqlLiteStore() (*SqliteStore, error) {
@@ -25,20 +25,21 @@ func TestMigrate(t *testing.T) {
 
 func TestSqlite(t *testing.T) {
 	tests := map[string]func(*testing.T, store.Store){
-		"GetLatestConversation":       storeTest.GetLatestConversation,
-		"GetConversations":            storeTest.GetConversation,
-		"SaveMessage":                 storeTest.SaveMessage,
-		"GetConversationsToSummarize": storeTest.GetConversationsToSummarize,
-		"GetSummaryByConversation":    storeTest.GetSummaryByConversation,
-		"SaveSummary":                 storeTest.SaveSummary,
-		"GetSummariesByAgentAndUser":  storeTest.GetSummariesByAgentAndUser,
+		"GetLatestConversation":          storeTest.GetLatestConversation,
+		"GetConversations":               storeTest.GetConversation,
+		"SaveMessage":                    storeTest.SaveMessage,
+		"GetConversationsToSummarize":    storeTest.GetConversationsToSummarize,
+		"GetSummaryByConversation":       storeTest.GetSummaryByConversation,
+		"SaveSummary":                    storeTest.SaveSummary,
+		"GetSummariesByAgentAndUser":     storeTest.GetSummariesByAgentAndUser,
+		"ExcludeConversationFromSummary": storeTest.ExcludeConversationFromSummary,
 	}
 
 	for name, test := range tests {
 		t.Run("TestSqlite"+name, func(t *testing.T) {
 			sqlite, err := CreateSqlLiteStore()
 
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			test(t, sqlite)
 		})
 	}
