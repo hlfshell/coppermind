@@ -155,8 +155,8 @@ func (store *SqliteStore) GetLatestConversation(agent string, user string) (stri
 	return conversation.String, timestamp, nil
 }
 
-func (store *SqliteStore) GetSummariesByUser(user string) ([]*memory.Summary, error) {
-	query := `SELECT (
+func (store *SqliteStore) GetSummariesByAgentAndUser(agent string, user string) ([]*memory.Summary, error) {
+	query := `SELECT
 		id,
 		conversation,
 		agent,
@@ -164,12 +164,12 @@ func (store *SqliteStore) GetSummariesByUser(user string) ([]*memory.Summary, er
 		keywords,
 		summary,
 		updated_at
-	) FROM {0} WHERE user = ?
+	FROM {0} WHERE agent = ? AND user = ?
 	`
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
 
-	rows, err := store.db.Query(query, user)
+	rows, err := store.db.Query(query, agent, user)
 	if err != nil {
 		return nil, err
 	}

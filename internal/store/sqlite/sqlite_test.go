@@ -31,6 +31,7 @@ func TestSqlite(t *testing.T) {
 		"GetConversationsToSummarize": storeTest.GetConversationsToSummarize,
 		"GetSummaryByConversation":    storeTest.GetSummaryByConversation,
 		"SaveSummary":                 storeTest.SaveSummary,
+		"GetSummariesByAgentAndUser":  storeTest.GetSummariesByAgentAndUser,
 	}
 
 	for name, test := range tests {
