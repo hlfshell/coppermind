@@ -4,6 +4,7 @@ To do this, respond in the format of "keyword 1, keyword 2, etc | a brief descri
 Do not include any mention that it is a discussion or conversation, as all summaries will be part of a discussion. Focus purely on categorization of content
 Do not mention any of the users in the conversation within the keywords
 If you believe that the conversation is short and has no significance, report "none | none" and do not output anything else
-Never respond with more than one *short* sentence, and try to keep keywords to just two or three comma delimited. Keywords should not be more than 2 words, usually one word. The brief description should be as short a sentence as possible, at most 12 words.
+Never respond with more than one *short* sentence, and try to keep keywords to just two or three comma delimited. Keywords should not be more than 2 words, usually one word.
+The brief description should give a one sentence overview of what was discussed. It should be AS SHORT a sentence as possible, at most 12 words.
 For instance, if the conversation is someone asking you about robotics, a possible result you'd respond with is "robotics, kinematics, motion planning | Keith asked Rose about how to kinematically plan a robot's arm motion.
-If the conversation is short and contains nothing of significance, such as two pepole just saying hi to one another and asking about their days, return "none | none".
+Aim to be succinct. If a conversation is short and contains nothing interesting, return the phrase "none | none".

@@ -6,28 +6,39 @@ import (
 	"github.com/hlfshell/coppermind/internal/memory"
 )
 
-func (agent *Agent) Summarize(conversation string) (*memory.Summary, error) {
+func (agent *Agent) Summarize(conversationId string) (*memory.Summary, error) {
 	// First we get all of the messages in that conversation
 	// that we'll be trying to summarize
-	msgs, err := agent.db.LoadConversationMessages(conversation)
+	conversation, err := agent.db.GetConversation(conversationId)
 	if err != nil {
 		return nil, err
 	}
 
 	//Determine if a summary already exists for this conversation
-	existingSummary, err := agent.db.GetSummaryByConversation(conversation)
+	existingSummary, err := agent.db.GetSummaryByConversation(conversationId)
 	if err != nil {
 		return nil, err
 	}
 
 	// Ask the llm to generate the summaries
-	summary, err := agent.llm.Summarize(agent.summaryInstructions, msgs, existingSummary)
+	summary, err := agent.llm.Summarize(agent.summaryInstructions, conversation, existingSummary)
+	if err != nil {
+		return nil, err
+	} else if summary == nil {
+		return nil, nil
+	}
 
-	return summary, err
+	err = agent.db.SaveSummary(summary)
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }
 
 func (agent *Agent) SummaryDaemon() error {
-	conversations, err := agent.db.GetConversationsToUpdate()
+	conversations, err := agent.db.GetConversationsToSummarize()
+	fmt.Println("convos", conversations)
 	if err != nil {
 		return err
 	}
@@ -37,10 +48,7 @@ func (agent *Agent) SummaryDaemon() error {
 		if err != nil {
 			return err
 		}
-		// err = agent.db.SaveSummary(summary)
-		// if err != nil {
-		// 	return err
-		// }
+
 		fmt.Println("summary")
 		fmt.Println(summary)
 	}

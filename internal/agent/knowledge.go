@@ -8,6 +8,7 @@ import (
 
 func (agent *Agent) KnowledgeDaemon() error {
 	conversations, err := agent.identifyConversationsToExtractKnowledge()
+	fmt.Println("conversatons", conversations)
 	if err != nil {
 		return err
 	}
@@ -26,7 +27,7 @@ func (agent *Agent) KnowledgeDaemon() error {
 }
 
 func (agent *Agent) ExtractKnowledge(conversaton string) ([]*memory.Knowledge, error) {
-	history, err := agent.db.LoadConversationMessages(conversaton)
+	history, err := agent.db.GetConversation(conversaton)
 	if err != nil {
 		return nil, err
 	}

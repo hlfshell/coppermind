@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	_ "embed"
@@ -50,6 +52,11 @@ func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 		knowledgeInstructions: knowledgeInstructions,
 	}
 
+	err := agent.SummaryDaemon()
+	fmt.Println("done")
+	fmt.Println(err)
+	os.Exit(3)
+
 	// err := agent.KnowledgeDaemon()
 	// fmt.Println("done")
 	// fmt.Println(err)
@@ -73,17 +80,50 @@ func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 }
 
 func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
-	conversation, err := agent.GenerateOrFindConversation(msg.User)
-	if err != nil {
-		return nil, err
+	// If no conversation is set, lookup to see if we have an old conversation
+	// that we can load up and join (based on how long since it's been) the
+	// last message in that conversation
+	if msg.Conversation == "" {
+		conversation, err := agent.GenerateOrFindConversation(msg)
+		if err != nil {
+			return nil, err
+		}
+		msg.Conversation = conversation
 	}
-	msg.Conversation = conversation
 
-	history, err := agent.loadConversationHistory(msg.Conversation)
+	// Load up the history if any exists
+	history, err := agent.db.GetConversation(msg.Conversation)
+	if err != nil {
+		return nil, err
+	} else if history == nil {
+		history = &chat.Conversation{
+			ID:        uuid.New().String(),
+			Agent:     msg.Agent,
+			User:      msg.User,
+			CreatedAt: msg.CreatedAt,
+			Messages:  []*chat.Message{},
+		}
+	}
+
+	// Load up summaries for user/agent conversations
+	summary, err := agent.db.GetSummaryByConversation(msg.Conversation)
 	if err != nil {
 		return nil, err
 	}
-	response, err := agent.llm.SendMessage(agent.chatInstructions, agent.identity, history, msg)
+	pastSummaries, err := agent.db.GetSummariesByAgentAndUser(msg.Agent, msg.User)
+	if err != nil {
+		return nil, err
+	}
+
+	// Have the LLM deal with the message as expected
+	response, err := agent.llm.SendMessage(
+		agent.chatInstructions,
+		agent.identity,
+		history,
+		pastSummaries,
+		summary,
+		msg,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -101,26 +141,13 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 	return response, nil
 }
 
-func (agent *Agent) GenerateOrFindConversation(user string) (string, error) {
-	conversation, timestamp, err := agent.db.GetLatestConversation(agent.Name, user)
+func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error) {
+	conversation, timestamp, err := agent.db.GetLatestConversation(msg.Agent, msg.User)
 	if err != nil {
 		return "", err
 	}
 	if time.Now().After(timestamp.Add(5*time.Minute)) || conversation == "" {
 		conversation = uuid.New().String()
-		err = agent.db.SaveConversation(&chat.Conversation{
-			ID:        conversation,
-			Agent:     agent.Name,
-			User:      user,
-			CreatedAt: time.Now(),
-		})
-		if err != nil {
-			return "", err
-		}
 	}
 	return conversation, nil
-}
-
-func (agent *Agent) loadConversationHistory(conversation string) ([]*chat.Message, error) {
-	return agent.db.LoadConversationMessages(conversation)
 }

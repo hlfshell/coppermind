@@ -35,8 +35,15 @@ func NewOpenAI(apiKey string) *OpenAI {
 	}
 }
 
-func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prompt, history []*chat.Message, message *chat.Message) (*chat.Response, error) {
-	data, err := ai.prepareChatMessage(instructions, identity, history, message)
+func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prompt, conversation *chat.Conversation, previousConversations []*memory.Summary, summary *memory.Summary, message *chat.Message) (*chat.Response, error) {
+	data, err := ai.prepareChatMessage(
+		instructions,
+		identity,
+		conversation.Messages,
+		previousConversations,
+		summary,
+		message,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +65,7 @@ func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prom
 	return ai.parseChatResponse(resp.Choices[0].Message.Content)
 }
 
-func (ai *OpenAI) prepareChatMessage(instructions []*chat.Prompt, identity []*chat.Prompt, history []*chat.Message, message *chat.Message) ([]openai.ChatCompletionMessage, error) {
+func (ai *OpenAI) prepareChatMessage(instructions []*chat.Prompt, identity []*chat.Prompt, history []*chat.Message, previousConversations []*memory.Summary, summary *memory.Summary, message *chat.Message) ([]openai.ChatCompletionMessage, error) {
 	msgs := []openai.ChatCompletionMessage{}
 
 	for _, instruction := range instructions {
@@ -107,8 +114,8 @@ func (ai *OpenAI) parseChatResponse(raw string) (*chat.Response, error) {
 	return msg, err
 }
 
-func (ai *OpenAI) Summarize(instructions []*chat.Prompt, history []*chat.Message, previousSummary *memory.Summary) (*memory.Summary, error) {
-	data, err := ai.prepareSummaryMessage(instructions, history, previousSummary)
+func (ai *OpenAI) Summarize(instructions []*chat.Prompt, conversation *chat.Conversation, previousSummary *memory.Summary) (*memory.Summary, error) {
+	data, err := ai.prepareSummaryMessage(instructions, conversation, previousSummary)
 	fmt.Println("prepped")
 	fmt.Println(data)
 	if err != nil {
@@ -129,10 +136,10 @@ func (ai *OpenAI) Summarize(instructions []*chat.Prompt, history []*chat.Message
 		return nil, OpenAIResponseError{msg: "No proper response returned"}
 	}
 
-	return ai.parseSummaryResponse(history[0].Conversation, resp.Choices[0].Message.Content)
+	return ai.parseSummaryResponse(conversation, resp.Choices[0].Message.Content)
 }
 
-func (ai *OpenAI) prepareSummaryMessage(instructions []*chat.Prompt, history []*chat.Message, previousSummary *memory.Summary) ([]openai.ChatCompletionMessage, error) {
+func (ai *OpenAI) prepareSummaryMessage(instructions []*chat.Prompt, conversation *chat.Conversation, previousSummary *memory.Summary) ([]openai.ChatCompletionMessage, error) {
 	msgs := []openai.ChatCompletionMessage{}
 
 	for _, instruction := range instructions {
@@ -153,7 +160,7 @@ func (ai *OpenAI) prepareSummaryMessage(instructions []*chat.Prompt, history []*
 		})
 	}
 
-	for _, msg := range history {
+	for _, msg := range conversation.Messages {
 		content, err := msg.JSON()
 		if err != nil {
 			return nil, err
@@ -167,32 +174,31 @@ func (ai *OpenAI) prepareSummaryMessage(instructions []*chat.Prompt, history []*
 	return msgs, nil
 }
 
-func (ai *OpenAI) parseSummaryResponse(conversation string, raw string) (*memory.Summary, error) {
+func (ai *OpenAI) parseSummaryResponse(conversation *chat.Conversation, raw string) (*memory.Summary, error) {
 	split := strings.Split(raw, "|")
 	//Validate and protect this
 	split[0] = strings.TrimSpace(split[0])
 	split[1] = strings.TrimSpace(split[1])
 
 	if split[0] == "none" {
-		fmt.Println("NONE REPORTED")
 		return nil, nil
 	}
 
 	summary := &memory.Summary{
 		ID:           uuid.New().String(),
-		Agent:        "Rose",
-		Conversation: conversation,
-		Brief:        split[1],
-		User:         "Keith",
-		CreatedAt:    time.Now(),
+		Agent:        conversation.Agent,
+		Conversation: conversation.ID,
+		Summary:      split[1],
+		User:         conversation.User,
+		UpdatedAt:    time.Now(),
 	}
 
 	summary.StringToKeywords(split[0])
 	return summary, nil
 }
 
-func (ai *OpenAI) Learn(instructions []*chat.Prompt, history []*chat.Message) ([]*memory.Knowledge, error) {
-	data, err := ai.prepareLearnMessage(instructions, history)
+func (ai *OpenAI) Learn(instructions []*chat.Prompt, conversation *chat.Conversation) ([]*memory.Knowledge, error) {
+	data, err := ai.prepareLearnMessage(instructions, conversation)
 	fmt.Println("prepped")
 	fmt.Println(data)
 	if err != nil {
@@ -211,12 +217,12 @@ func (ai *OpenAI) Learn(instructions []*chat.Prompt, history []*chat.Message) ([
 	fmt.Println(resp)
 	fmt.Println("tokens")
 	fmt.Println(resp.Usage)
-	ai.parseLearnResponse(history[0].Conversation, resp.Choices[0].Message.Content)
+	ai.parseLearnResponse(conversation, resp.Choices[0].Message.Content)
 
 	return nil, nil
 }
 
-func (ai *OpenAI) prepareLearnMessage(instructions []*chat.Prompt, history []*chat.Message) ([]openai.ChatCompletionMessage, error) {
+func (ai *OpenAI) prepareLearnMessage(instructions []*chat.Prompt, conversation *chat.Conversation) ([]openai.ChatCompletionMessage, error) {
 	msgs := []openai.ChatCompletionMessage{}
 
 	for _, instruction := range instructions {
@@ -226,21 +232,37 @@ func (ai *OpenAI) prepareLearnMessage(instructions []*chat.Prompt, history []*ch
 		})
 	}
 
-	for _, msg := range history {
-		content, err := msg.JSON()
-		if err != nil {
-			return nil, err
-		}
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: "Converstaion History:\n",
+	})
+
+	lastMsgJson := conversation.Messages[len(conversation.Messages)-1].SimpleString()
+
+	for _, msg := range conversation.Messages {
+		content := msg.SimpleString()
 		msgs = append(msgs, openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: content,
+			Content: content + "\n",
 		})
 	}
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: "Input:\n",
+	})
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: lastMsgJson + "\n",
+	})
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: "Output:\n",
+	})
 
 	return msgs, nil
 }
 
-func (ai *OpenAI) parseLearnResponse(conversation string, raw string) (*memory.Summary, error) {
+func (ai *OpenAI) parseLearnResponse(conversation *chat.Conversation, raw string) (*memory.Summary, error) {
 	split := strings.Split(raw, "|")
 	fmt.Println("returns")
 	fmt.Println(split)
@@ -255,11 +277,11 @@ func (ai *OpenAI) parseLearnResponse(conversation string, raw string) (*memory.S
 
 	summary := &memory.Summary{
 		ID:           uuid.New().String(),
-		Agent:        "Rose",
-		Conversation: conversation,
-		Brief:        split[1],
-		User:         "Keith",
-		CreatedAt:    time.Now(),
+		Agent:        conversation.Agent,
+		Conversation: conversation.ID,
+		Summary:      split[1],
+		User:         conversation.User,
+		UpdatedAt:    time.Now(),
 	}
 
 	summary.StringToKeywords(split[0])
