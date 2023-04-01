@@ -25,6 +25,7 @@ func (agent *Agent) Summarize(conversationId string) (*memory.Summary, error) {
 	if err != nil {
 		return nil, err
 	} else if summary == nil {
+		agent.db.ExcludeConversationFromSummary(conversationId)
 		return nil, nil
 	}
 
@@ -37,7 +38,11 @@ func (agent *Agent) Summarize(conversationId string) (*memory.Summary, error) {
 }
 
 func (agent *Agent) SummaryDaemon() error {
-	conversations, err := agent.db.GetConversationsToSummarize()
+	conversations, err := agent.db.GetConversationsToSummarize(
+		agent.summaryMinMessages,
+		agent.summaryMinConversationTime,
+		agent.summaryMinMessagesToForceSummarization,
+	)
 	fmt.Println("convos", conversations)
 	if err != nil {
 		return err

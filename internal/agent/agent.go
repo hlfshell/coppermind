@@ -25,8 +25,11 @@ type Agent struct {
 	identity         []*chat.Prompt
 
 	//Summary specific
-	summaryInstructions []*chat.Prompt
-	summaryTicker       *time.Ticker
+	summaryInstructions                    []*chat.Prompt
+	summaryTicker                          *time.Ticker
+	summaryMinMessages                     int
+	summaryMinConversationTime             time.Duration
+	summaryMinMessagesToForceSummarization int
 
 	//Knowledge specific
 	knowledgeInstructions []*chat.Prompt
