@@ -164,6 +164,7 @@ func (store *SqliteStore) GetSummariesByAgentAndUser(agent string, user string) 
 		user,
 		keywords,
 		summary,
+		conversation_started_at,
 		updated_at
 	FROM {0} WHERE agent = ? AND user = ?
 	`
@@ -191,6 +192,7 @@ func (store *SqliteStore) GetSummaryByConversation(conversation string) (*memory
 		user,
 		keywords,
 		summary,
+		conversation_started_at,
 		updated_at
 	FROM {0} WHERE conversation = ?`
 
@@ -222,9 +224,12 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
         user,
         keywords,
         summary,
+		conversation_started_at,
 		updated_at
 	)
-	VALUES(?, ?, ?, ?, ?, ?, ?)`
+	VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+
+	summary.UpdatedAt = time.Now()
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
 
@@ -236,6 +241,7 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 		summary.User,
 		summary.KeywordsToString(),
 		summary.Summary,
+		summary.ConversationStartedAt,
 		summary.UpdatedAt,
 	)
 
@@ -338,7 +344,8 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 	for rows.Next() {
 		var summary memory.Summary
 		var keywords string
-		var datetime string
+		var updatedTime string
+		var conversationStartTime string
 
 		err := rows.Scan(
 			&summary.ID,
@@ -347,16 +354,20 @@ func (store *SqliteStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, er
 			&summary.User,
 			&keywords,
 			&summary.Summary,
-			&datetime,
+			&conversationStartTime,
+			&updatedTime,
 		)
 		if err != nil {
 			return nil, err
 		}
-		timestamp, err := store.sqlTimestampToTime(datetime)
+		timestamp, err := store.sqlTimestampToTime(updatedTime)
 		if err != nil {
 			return nil, err
 		}
 		summary.UpdatedAt = timestamp
+
+		timestamp, err = store.sqlTimestampToTime(conversationStartTime)
+		summary.ConversationStartedAt = timestamp
 
 		summary.StringToKeywords(keywords)
 

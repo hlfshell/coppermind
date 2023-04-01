@@ -8,13 +8,14 @@ import (
 )
 
 type Summary struct {
-	ID           string    `json:"id,omitempty" db:"id"`
-	Agent        string    `json:"agent,omitempty" db:"agent"`
-	Conversation string    `json:"conversation,omitempty" db:"conversation"`
-	Keywords     []string  `json:"keywords,omitempty" db:"keywords"`
-	Summary      string    `json:"summary,omitempty" db:"summary"`
-	User         string    `json:"user,omitempty" db:"user"`
-	UpdatedAt    time.Time `json:"updated_at,omitempty" db:"updated_at"`
+	ID                    string    `json:"id,omitempty" db:"id"`
+	Agent                 string    `json:"agent,omitempty" db:"agent"`
+	Conversation          string    `json:"conversation,omitempty" db:"conversation"`
+	Keywords              []string  `json:"keywords,omitempty" db:"keywords"`
+	Summary               string    `json:"summary,omitempty" db:"summary"`
+	User                  string    `json:"user,omitempty" db:"user"`
+	UpdatedAt             time.Time `json:"updated_at,omitempty" db:"updated_at"`
+	ConversationStartedAt time.Time `json:"conversation_started_at,omitempty" db:"conversation_started_at"`
 }
 
 func (summary *Summary) Equal(other *Summary) bool {
@@ -59,9 +60,11 @@ func (summary *Summary) StringToKeywords(input string) {
 	summary.Keywords = strings.Split(input, ",")
 }
 
-func (summary *Summary) String() string {
+func (summary *Summary) StringWithConversation() string {
 	return stringFormatter.Format(
-		"{0} | {1}",
+		"{0} | {1} | {2} | {3}",
+		summary.User,
+		summary.ConversationStartedAt.Format("January 2nd 06 15:04"),
 		summary.KeywordsToString(),
 		summary.Summary,
 	)

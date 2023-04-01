@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS
         user VARCHAR NOT NULL,
         keywords TEXT,
         summary TEXT NOT NULL,
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW,
+        conversation_started_at TIMESTAMP NOT NULL
     );
 
 CREATE UNIQUE INDEX IF NOT EXISTS summaries_id_v1 ON Summaries_V1(id);

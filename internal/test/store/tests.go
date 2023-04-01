@@ -160,13 +160,14 @@ func SaveSummary(t *testing.T, store store.Store) {
 
 	//Create the summary and save, ensure we can read it back
 	summary := &memory.Summary{
-		ID:           uuid.New().String(),
-		Agent:        "R2D2",
-		User:         "Luke",
-		Conversation: conversation,
-		Keywords:     []string{"astronavigation", "ship repairs"},
-		Summary:      "boop beep beep boop",
-		UpdatedAt:    time.Now(),
+		ID:                    uuid.New().String(),
+		Agent:                 "R2D2",
+		User:                  "Luke",
+		Conversation:          conversation,
+		Keywords:              []string{"astronavigation", "ship repairs"},
+		Summary:               "boop beep beep boop",
+		ConversationStartedAt: time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 	err = store.SaveSummary(summary)
 	assert.Nil(t, err)
@@ -176,9 +177,15 @@ func SaveSummary(t *testing.T, store store.Store) {
 	assert.NotNil(t, retrievedSummary)
 	assert.True(t, summary.Equal(retrievedSummary))
 
-	//Now that we have an existing summary, we should be able to
-	//update it. The SaveSummary function assumes "upsert"
-	//functionality
+	// Now that we have an existing summary, we should be able to
+	// update it. The SaveSummary function assumes "upsert"
+	// functionality. Likewise, we wait 1.5 seconds to ensure that
+	// the updated timestamp is different (we don't have better than
+	// second granularity). The time should be updated at the point
+	// of saving the summary as we depend upon it being updated.
+	time.Sleep(1*time.Second + 500*time.Millisecond)
+	summaryOriginalTime := summary.UpdatedAt
+
 	newSummary := "Beep boop boop beep"
 	summary.Summary = newSummary
 	err = store.SaveSummary(summary)
@@ -188,6 +195,7 @@ func SaveSummary(t *testing.T, store store.Store) {
 	assert.NotNil(t, retrievedSummary)
 	assert.True(t, summary.Equal(retrievedSummary))
 	assert.Equal(t, newSummary, retrievedSummary.Summary)
+	assert.Less(t, summaryOriginalTime, retrievedSummary.UpdatedAt)
 }
 
 func GetConversationsToSummarize(t *testing.T, store store.Store) {
@@ -210,13 +218,14 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 		CreatedAt:    time.Now().Add(-5 * time.Minute),
 	}
 	summary1 := &memory.Summary{
-		ID:           uuid.New().String(),
-		Agent:        msg1.Agent,
-		User:         msg1.User,
-		Conversation: msg1.Conversation,
-		Keywords:     []string{"food", "puppy"},
-		Summary:      "A wonderful puppy inquires about a snack",
-		UpdatedAt:    time.Now(),
+		ID:                    uuid.New().String(),
+		Agent:                 msg1.Agent,
+		User:                  msg1.User,
+		Conversation:          msg1.Conversation,
+		Keywords:              []string{"food", "puppy"},
+		Summary:               "A wonderful puppy inquires about a snack",
+		UpdatedAt:             time.Now(),
+		ConversationStartedAt: msg1.CreatedAt,
 	}
 	msg2 := &chat.Message{
 		ID:           uuid.New().String(),
@@ -228,13 +237,14 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 		CreatedAt:    time.Now().Add(-5 * time.Minute),
 	}
 	summary2 := &memory.Summary{
-		ID:           uuid.New().String(),
-		Agent:        msg1.Agent,
-		User:         msg1.User,
-		Conversation: msg2.Conversation,
-		Keywords:     []string{"food", "puppy"},
-		Summary:      "A cute puppy inquires about a proper meal",
-		UpdatedAt:    time.Now(),
+		ID:                    uuid.New().String(),
+		Agent:                 msg1.Agent,
+		User:                  msg1.User,
+		Conversation:          msg2.Conversation,
+		Keywords:              []string{"food", "puppy"},
+		Summary:               "A cute puppy inquires about a proper meal",
+		UpdatedAt:             time.Now(),
+		ConversationStartedAt: msg2.CreatedAt,
 	}
 
 	for _, msg := range []*chat.Message{msg1, msg2} {
@@ -352,13 +362,14 @@ func GetSummaryByConversation(t *testing.T, store store.Store) {
 
 	//Now create the summary
 	createdSummary := &memory.Summary{
-		ID:           uuid.New().String(),
-		Agent:        "Bob",
-		User:         "Alice",
-		Keywords:     []string{"secret", "stuff"},
-		Summary:      "Bob plots with Alice",
-		UpdatedAt:    time.Now(),
-		Conversation: conversation,
+		ID:                    uuid.New().String(),
+		Agent:                 "Bob",
+		User:                  "Alice",
+		Keywords:              []string{"secret", "stuff"},
+		Summary:               "Bob plots with Alice",
+		UpdatedAt:             time.Now(),
+		ConversationStartedAt: msg.CreatedAt,
+		Conversation:          conversation,
 	}
 	err = store.SaveSummary(createdSummary)
 	assert.Nil(t, err)
@@ -377,13 +388,14 @@ func GetSummariesByAgentAndUser(t *testing.T, store store.Store) {
 	assert.Equal(t, 0, len(summaries))
 
 	summary := &memory.Summary{
-		ID:           uuid.New().String(),
-		Conversation: uuid.New().String(),
-		Agent:        agent,
-		User:         user,
-		Keywords:     []string{"woah", "dude"},
-		Summary:      "Be excellent to eachother",
-		UpdatedAt:    time.Now(),
+		ID:                    uuid.New().String(),
+		Conversation:          uuid.New().String(),
+		Agent:                 agent,
+		User:                  user,
+		Keywords:              []string{"woah", "dude"},
+		Summary:               "Be excellent to eachother",
+		UpdatedAt:             time.Now(),
+		ConversationStartedAt: time.Now().Add(-time.Hour),
 	}
 
 	err = store.SaveSummary(summary)
