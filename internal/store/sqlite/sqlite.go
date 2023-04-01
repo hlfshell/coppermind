@@ -264,9 +264,6 @@ func (store *SqliteStore) GetConversationsToSummarize(minMessages int, minAge ti
 		WHERE (summary IS NULL OR latest_message > summary_updated_at) AND 
 		((latest_message <= ? AND messages_count >= ?) OR messages_count >= ?)
 	`
-	// HAVING
-	// 	(summary IS NULL OR MAX(messages.created_at) > summaries.updated_at) AND
-	// 	((MAX(messages.created_at) <= ? AND COUNT(messages.id) >= ?) OR COUNT(messages.id) >= ?)
 
 	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, SUMMARY_EXCLUSION_TABLE)
 
