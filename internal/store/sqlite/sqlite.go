@@ -245,27 +245,12 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 func (store *SqliteStore) GetConversationsToSummarize(minMessages int, minAge time.Duration, maxLength int) ([]string, error) {
 	ageTime := time.Now().Add(-1 * minAge)
 
-	// query := `
-	// 	WITH target_conversations AS(
-	// 	SELECT
-	// 		messages.conversation as conversationId,
-	// 		MAX(messages.created_at) as latest_message,
-	// 		summaries.id as summary,
-	// 		summaries.updated_at as summary_updated_at
-	// 	FROM {0} AS messages LEFT JOIN {1} AS summaries
-	// 		ON messages.conversation = summaries.conversation
-	// 	GROUP BY messages.conversation
-	// 	HAVING
-	// 		summary IS NULL OR
-	// 		MAX(messages.created_at) > summaries.updated_at
-	// 	)
-	// 	SELECT conversationId FROM target_conversations;
-	// `
 	query := `
 		WITH target_conversations AS (
 			SELECT
 				messages.conversation as conversationId,
 				MAX(messages.created_at) as latest_message,
+				COUNT(messages.id) as messages_count,
 				summaries.id as summary,
 				summaries.updated_at as summary_updated_at
 			FROM {0} AS messages 
@@ -273,13 +258,15 @@ func (store *SqliteStore) GetConversationsToSummarize(minMessages int, minAge ti
 			LEFT JOIN {2} AS exclusion ON messages.conversation = exclusion.conversation
 			WHERE exclusion.conversation IS NULL 
 			GROUP BY messages.conversation
-			HAVING 
-				(summary IS NULL OR MAX(messages.created_at) > summaries.updated_at) AND 
-				((latest_message >= ? AND COUNT(messages.id) >= ?) OR COUNT(messages.id) >= ?)
 		)
 		SELECT conversationId 
-		FROM target_conversations;
+		FROM target_conversations
+		WHERE (summary IS NULL OR latest_message > summary_updated_at) AND 
+		((latest_message <= ? AND messages_count >= ?) OR messages_count >= ?)
 	`
+	// HAVING
+	// 	(summary IS NULL OR MAX(messages.created_at) > summaries.updated_at) AND
+	// 	((MAX(messages.created_at) <= ? AND COUNT(messages.id) >= ?) OR COUNT(messages.id) >= ?)
 
 	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, SUMMARY_EXCLUSION_TABLE)
 
