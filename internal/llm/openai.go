@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hlfshell/coppermind/internal/chat"
-	"github.com/hlfshell/coppermind/internal/memory"
 	"github.com/hlfshell/coppermind/internal/prompts"
+	"github.com/hlfshell/coppermind/pkg/chat"
+	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wissance/stringFormatter"
 )

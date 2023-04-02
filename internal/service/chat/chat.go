@@ -1,8 +1,10 @@
 package chat
 
 import (
+	"fmt"
+
 	"github.com/hlfshell/coppermind/internal/agent"
-	"github.com/hlfshell/coppermind/internal/chat"
+	"github.com/hlfshell/coppermind/pkg/chat"
 )
 
 type ChatService struct {
@@ -16,5 +18,8 @@ func NewChatService(agent *agent.Agent) *ChatService {
 }
 
 func (service *ChatService) SendMessage(message *chat.Message) (*chat.Response, error) {
-	return service.agent.SendMessage(message)
+	fmt.Println("Received", message)
+	resp, err := service.agent.SendMessage(message)
+	fmt.Println("responding", err, resp)
+	return resp, err
 }

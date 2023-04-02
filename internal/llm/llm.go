@@ -1,8 +1,8 @@
 package llm
 
 import (
-	"github.com/hlfshell/coppermind/internal/chat"
-	"github.com/hlfshell/coppermind/internal/memory"
+	"github.com/hlfshell/coppermind/pkg/chat"
+	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 type LLM interface {

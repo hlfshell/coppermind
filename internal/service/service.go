@@ -6,11 +6,11 @@ import (
 )
 
 type Service struct {
-	chat *chat.ChatService
+	Chat *chat.ChatService
 }
 
 func NewService(agent *agent.Agent) *Service {
 	return &Service{
-		chat: chat.NewChatService(agent),
+		Chat: chat.NewChatService(agent),
 	}
 }

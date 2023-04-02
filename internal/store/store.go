@@ -3,8 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/hlfshell/coppermind/internal/chat"
-	"github.com/hlfshell/coppermind/internal/memory"
+	"github.com/hlfshell/coppermind/pkg/chat"
+	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 // Store interface is the heart of our system's memory - it

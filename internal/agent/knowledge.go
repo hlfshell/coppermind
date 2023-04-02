@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 
-	"github.com/hlfshell/coppermind/internal/memory"
+	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 func (agent *Agent) KnowledgeDaemon() error {

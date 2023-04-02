@@ -6,10 +6,10 @@ import (
 	_ "embed"
 
 	"github.com/google/uuid"
-	"github.com/hlfshell/coppermind/internal/chat"
 	"github.com/hlfshell/coppermind/internal/llm"
 	"github.com/hlfshell/coppermind/internal/prompts"
 	"github.com/hlfshell/coppermind/internal/store"
+	"github.com/hlfshell/coppermind/pkg/chat"
 )
 
 type Agent struct {
