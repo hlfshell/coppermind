@@ -82,7 +82,11 @@ type Store interface {
 				fast enough, we will run out of room to pass message
 				history and we can't wait for it to age for a summary;
 				thus we need to create summaries regularly and update
-				it as the conversation moves along.
+				it as the conversation moves along. This max message
+				length needs to be both on first coverage at a summary
+				and subequent updates. Thus future summarization needs
+				to consider if there has been the max length has
+				occurred since the last update.
 	*/
 	GetConversationsToSummarize(minMessages int, minAge time.Duration, maxLength int) ([]string, error)
 

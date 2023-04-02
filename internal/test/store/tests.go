@@ -19,7 +19,7 @@ func GetConversation(t *testing.T, store store.Store) {
 
 	//Assert that it returns nothing in the nil case first
 	nullConversation, err := store.GetConversation(conversationId)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Nil(t, nullConversation)
 
 	oldest := &chat.Message{
@@ -61,11 +61,11 @@ func GetConversation(t *testing.T, store store.Store) {
 	msgs := []*chat.Message{oldest, older, newest, redHerring}
 	for _, msg := range msgs {
 		err = store.SaveMessage(msg)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	retrievedConversation, err := store.GetConversation(conversationId)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.NotNil(t, retrievedConversation)
 
 	expectedConversation := &chat.Conversation{
@@ -84,7 +84,7 @@ func GetLatestConversation(t *testing.T, store store.Store) {
 
 	//Assert that it returns nothing in the nil case first
 	latestConversation, timestamp, err := store.GetLatestConversation(agent, user)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, latestConversation, "")
 	assert.Equal(t, time.Time{}, timestamp)
 
@@ -118,11 +118,11 @@ func GetLatestConversation(t *testing.T, store store.Store) {
 
 	for _, message := range []*chat.Message{&oldest, &older, &latest} {
 		err := store.SaveMessage(message)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	latestConversation, timestamp, err = store.GetLatestConversation(agent, user)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, latest.Conversation, latestConversation)
 	assert.WithinDuration(t, latest.CreatedAt, timestamp, time.Second)
 }
@@ -138,14 +138,14 @@ func SaveMessage(t *testing.T, store store.Store) {
 	}
 
 	conversation, err := store.GetConversation(message.Conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Nil(t, conversation)
 
 	err = store.SaveMessage(message)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	conversation, err = store.GetConversation(message.Conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 1, len(conversation.Messages))
 	assert.True(t, message.Equal(conversation.Messages[0]))
 }
@@ -155,7 +155,7 @@ func SaveSummary(t *testing.T, store store.Store) {
 
 	//Check the null case
 	retrievedSummary, err := store.GetSummaryByConversation(conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Nil(t, retrievedSummary)
 
 	//Create the summary and save, ensure we can read it back
@@ -170,10 +170,10 @@ func SaveSummary(t *testing.T, store store.Store) {
 		UpdatedAt:             time.Now(),
 	}
 	err = store.SaveSummary(summary)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	retrievedSummary, err = store.GetSummaryByConversation(conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.NotNil(t, retrievedSummary)
 	assert.True(t, summary.Equal(retrievedSummary))
 
@@ -189,9 +189,9 @@ func SaveSummary(t *testing.T, store store.Store) {
 	newSummary := "Beep boop boop beep"
 	summary.Summary = newSummary
 	err = store.SaveSummary(summary)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	retrievedSummary, err = store.GetSummaryByConversation(conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.NotNil(t, retrievedSummary)
 	assert.True(t, summary.Equal(retrievedSummary))
 	assert.Equal(t, newSummary, retrievedSummary.Summary)
@@ -201,7 +201,7 @@ func SaveSummary(t *testing.T, store store.Store) {
 func GetConversationsToSummarize(t *testing.T, store store.Store) {
 	// 1. First let's ensure the null case - there are no summaries to find.
 	conversations, err := store.GetConversationsToSummarize(0, 0, 0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	// 2. Now we create a set of messages with summaries that
@@ -249,15 +249,15 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 
 	for _, msg := range []*chat.Message{msg1, msg2} {
 		err = store.SaveMessage(msg)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 	for _, summary := range []*memory.Summary{summary1, summary2} {
 		err = store.SaveSummary(summary)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	conversations, err = store.GetConversationsToSummarize(0, 0, 0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	// 3. No let's create a set of messages with no summaries so that they get
@@ -274,27 +274,27 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 	err = store.SaveMessage(msg3)
 	require.Nil(t, err)
 	conversations, err = store.GetConversationsToSummarize(0, 0, 0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 1, len(conversations))
 	assert.Equal(t, msg3.Conversation, conversations[0])
 
 	// 4. Now set the minimum age so the conversation is ignore as it's
 	// not old enough to be detected
 	conversations, err = store.GetConversationsToSummarize(0, 10*time.Minute, 5)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	// 5. Revert the age limit and raise the min messages limit to show that it's
 	// not detected either
 	conversations, err = store.GetConversationsToSummarize(3, 0, 5)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	// 6. Mark the message as excluded so it's ignored
 	err = store.ExcludeConversationFromSummary(msg3.Conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	conversations, err = store.GetConversationsToSummarize(0, 0, 0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	// 7. Create a long conversation. Make sure the latest message is above
@@ -316,11 +316,11 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 	}
 	for _, msg := range messages {
 		err = store.SaveMessage(msg)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	conversations, err = store.GetConversationsToSummarize(3, 10*time.Minute, 5)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 
 	err = store.SaveMessage(&chat.Message{
@@ -332,12 +332,56 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 		CreatedAt:    time.Now(),
 		Tone:         "neutral",
 	})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	conversations, err = store.GetConversationsToSummarize(3, 10*time.Minute, 5)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 1, len(conversations))
 	assert.Equal(t, conversation, conversations[0])
+
+	// 8. If the above conversation has a summary, however, it should not
+	// be picked up by our function unless we have some max messages ABOVE
+	// the last updated_at date of the summary. Thus not until we add
+	// multiple new messages will this summray be picked up again
+	longSummary := &memory.Summary{
+		ID:           uuid.New().String(),
+		Agent:        "Rebecca",
+		User:         "Abby",
+		Conversation: conversation,
+		Keywords:     []string{"meaning of life", "puppy"},
+		Summary:      "A long conversation about fetch",
+		UpdatedAt:    time.Now(),
+	}
+	err = store.SaveSummary(longSummary)
+	require.Nil(t, err)
+
+	// Ensure that it's no longer listed post summary
+	conversations, err = store.GetConversationsToSummarize(3, 10*time.Minute, 5)
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+
+	// Now add a few messages (under the 5 needed to trigger a new summary)
+	// and ensure it's still not picked up. Note that each message should
+	// have a CreatedAt time after our summary's updated_at
+	for i := 0; i < 4; i++ {
+		err = store.SaveMessage(&chat.Message{
+			ID:           uuid.New().String(),
+			Conversation: conversation,
+			Agent:        "Rebecca",
+			User:         "Abby",
+			Content:      "This is a long conversation",
+			CreatedAt:    time.Now().Add(time.Minute * time.Duration(i+1)),
+			Tone:         "neutral",
+		})
+		require.Nil(t, err)
+	}
+	conversations, err = store.GetConversationsToSummarize(3, 10*time.Minute, 5)
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+
+	// Finally add the fifth message to this forcing the conversation to be
+	// selected
+
 }
 
 func GetSummaryByConversation(t *testing.T, store store.Store) {
@@ -352,12 +396,12 @@ func GetSummaryByConversation(t *testing.T, store store.Store) {
 		Tone:         "hushed",
 	}
 	err := store.SaveMessage(msg)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	//Ensure nothing is returned as no summary is created
 	//yet
 	summary, err := store.GetSummaryByConversation(conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Nil(t, summary)
 
 	//Now create the summary
@@ -372,10 +416,10 @@ func GetSummaryByConversation(t *testing.T, store store.Store) {
 		Conversation:          conversation,
 	}
 	err = store.SaveSummary(createdSummary)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	summary, err = store.GetSummaryByConversation(conversation)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.NotNil(t, summary)
 	assert.True(t, createdSummary.Equal(summary))
 }
@@ -384,7 +428,7 @@ func GetSummariesByAgentAndUser(t *testing.T, store store.Store) {
 	agent := "Bill"
 	user := "Ted"
 	summaries, err := store.GetSummariesByAgentAndUser(agent, user)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 0, len(summaries))
 
 	summary := &memory.Summary{
@@ -399,10 +443,10 @@ func GetSummariesByAgentAndUser(t *testing.T, store store.Store) {
 	}
 
 	err = store.SaveSummary(summary)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	summaries, err = store.GetSummariesByAgentAndUser(agent, user)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, 1, len(summaries))
 	assert.True(t, summary.Equal(summaries[0]))
 }
