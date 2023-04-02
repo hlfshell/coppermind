@@ -381,7 +381,20 @@ func GetConversationsToSummarize(t *testing.T, store store.Store) {
 
 	// Finally add the fifth message to this forcing the conversation to be
 	// selected
-
+	err = store.SaveMessage(&chat.Message{
+		ID:           uuid.New().String(),
+		Conversation: conversation,
+		Agent:        "Rebecca",
+		User:         "Abby",
+		Content:      "This is a long conversation",
+		CreatedAt:    time.Now().Add(time.Minute * 6),
+		Tone:         "neutral",
+	})
+	require.Nil(t, err)
+	conversations, err = store.GetConversationsToSummarize(3, 10*time.Minute, 5)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(conversations))
+	assert.Equal(t, conversation, conversations[0])
 }
 
 func GetSummaryByConversation(t *testing.T, store store.Store) {
