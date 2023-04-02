@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hlfshell/coppermind/internal/chat"
-	"github.com/hlfshell/coppermind/internal/memory"
 	"github.com/hlfshell/coppermind/internal/store"
+	"github.com/hlfshell/coppermind/pkg/chat"
+	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

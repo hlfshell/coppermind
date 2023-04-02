@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/agent"
-	"github.com/hlfshell/coppermind/internal/chat"
 	"github.com/hlfshell/coppermind/internal/llm"
 	"github.com/hlfshell/coppermind/internal/store/sqlite"
+	"github.com/hlfshell/coppermind/pkg/chat"
 
 	"github.com/urfave/cli/v2"
 )
