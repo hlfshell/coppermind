@@ -35,13 +35,12 @@ func NewOpenAI(apiKey string) *OpenAI {
 	}
 }
 
-func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prompt, conversation *chat.Conversation, previousConversations []*memory.Summary, summary *memory.Summary, message *chat.Message) (*chat.Response, error) {
+func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prompt, conversation *chat.Conversation, previousConversations []*memory.Summary, message *chat.Message) (*chat.Response, error) {
 	data, err := ai.prepareChatMessage(
 		instructions,
 		identity,
 		conversation.Messages,
 		previousConversations,
-		summary,
 		message,
 	)
 	if err != nil {
@@ -65,7 +64,13 @@ func (ai *OpenAI) SendMessage(instructions []*chat.Prompt, identity []*chat.Prom
 	return ai.parseChatResponse(resp.Choices[0].Message.Content)
 }
 
-func (ai *OpenAI) prepareChatMessage(instructions []*chat.Prompt, identity []*chat.Prompt, history []*chat.Message, previousConversations []*memory.Summary, summary *memory.Summary, message *chat.Message) ([]openai.ChatCompletionMessage, error) {
+func (ai *OpenAI) prepareChatMessage(
+	instructions []*chat.Prompt,
+	identity []*chat.Prompt,
+	history []*chat.Message,
+	previousConversations []*memory.Summary,
+	message *chat.Message,
+) ([]openai.ChatCompletionMessage, error) {
 	msgs := []openai.ChatCompletionMessage{}
 
 	for _, instruction := range instructions {
@@ -80,6 +85,45 @@ func (ai *OpenAI) prepareChatMessage(instructions []*chat.Prompt, identity []*ch
 			Role:    openai.ChatMessageRoleSystem,
 			Content: fact.Content,
 		})
+	}
+
+	var previousSummary *memory.Summary
+	if len(previousConversations) > 0 {
+		msgs = append(msgs, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: prompts.SummaryIncluded,
+		})
+		summariesString := ""
+		for index, summary := range previousConversations {
+			if index > 0 {
+				summariesString += ","
+			}
+			// Do not include the summary for this conversation
+			// if it's included
+			if summary.Conversation != message.Conversation {
+				summariesString += summary.String()
+			} else {
+				previousSummary = summary
+			}
+		}
+		msgs = append(msgs, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: summariesString,
+		})
+	}
+
+	if previousSummary != nil {
+		msgs = append(
+			msgs,
+			openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: prompts.PreviousSummary,
+			},
+			openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: previousSummary.String(),
+			},
+		)
 	}
 
 	for _, msg := range history {
@@ -114,7 +158,11 @@ func (ai *OpenAI) parseChatResponse(raw string) (*chat.Response, error) {
 	return msg, err
 }
 
-func (ai *OpenAI) Summarize(instructions []*chat.Prompt, conversation *chat.Conversation, previousSummary *memory.Summary) (*memory.Summary, error) {
+func (ai *OpenAI) Summarize(
+	instructions []*chat.Prompt,
+	conversation *chat.Conversation,
+	previousSummary *memory.Summary,
+) (*memory.Summary, error) {
 	data, err := ai.prepareSummaryMessage(instructions, conversation, previousSummary)
 	fmt.Println("prepped")
 	fmt.Println(data)
@@ -139,7 +187,11 @@ func (ai *OpenAI) Summarize(instructions []*chat.Prompt, conversation *chat.Conv
 	return ai.parseSummaryResponse(conversation, resp.Choices[0].Message.Content)
 }
 
-func (ai *OpenAI) prepareSummaryMessage(instructions []*chat.Prompt, conversation *chat.Conversation, previousSummary *memory.Summary) ([]openai.ChatCompletionMessage, error) {
+func (ai *OpenAI) prepareSummaryMessage(
+	instructions []*chat.Prompt,
+	conversation *chat.Conversation,
+	previousSummary *memory.Summary,
+) ([]openai.ChatCompletionMessage, error) {
 	msgs := []openai.ChatCompletionMessage{}
 
 	for _, instruction := range instructions {

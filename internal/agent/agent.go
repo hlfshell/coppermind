@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	_ "embed"
@@ -23,6 +21,7 @@ type Agent struct {
 	//Chat specific
 	chatInstructions []*chat.Prompt
 	identity         []*chat.Prompt
+	maxChatMessages  int
 
 	//Summary specific
 	summaryInstructions                    []*chat.Prompt
@@ -38,27 +37,31 @@ type Agent struct {
 func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 	instructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Instructions}}
 	identity := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Identity}}
-
 	summaryInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Summary}}
 
 	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
 
 	agent := &Agent{
-		Name:                name,
-		db:                  db,
-		llm:                 llm,
-		chatInstructions:    instructions,
-		identity:            identity,
-		summaryInstructions: summaryInstructions,
-		summaryTicker:       time.NewTicker(60 * time.Second),
+		Name:             name,
+		db:               db,
+		llm:              llm,
+		chatInstructions: instructions,
+		identity:         identity,
+		maxChatMessages:  20,
+
+		summaryInstructions:                    summaryInstructions,
+		summaryTicker:                          time.NewTicker(60 * time.Second),
+		summaryMinMessages:                     5,
+		summaryMinConversationTime:             5 * time.Minute,
+		summaryMinMessagesToForceSummarization: 15,
 
 		knowledgeInstructions: knowledgeInstructions,
 	}
 
-	err := agent.SummaryDaemon()
-	fmt.Println("done")
-	fmt.Println(err)
-	os.Exit(3)
+	// err := agent.SummaryDaemon()
+	// fmt.Println("done")
+	// fmt.Println(err)
+	// os.Exit(3)
 
 	// err := agent.KnowledgeDaemon()
 	// fmt.Println("done")
@@ -108,11 +111,11 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 		}
 	}
 
-	// Load up summaries for user/agent conversations
-	summary, err := agent.db.GetSummaryByConversation(msg.Conversation)
-	if err != nil {
-		return nil, err
+	if len(history.Messages) > agent.maxChatMessages {
+		history.Messages = history.PastNMessages(agent.maxChatMessages)
 	}
+
+	// Load up summaries for user/agent conversations
 	pastSummaries, err := agent.db.GetSummariesByAgentAndUser(msg.Agent, msg.User)
 	if err != nil {
 		return nil, err
@@ -124,7 +127,6 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 		agent.identity,
 		history,
 		pastSummaries,
-		summary,
 		msg,
 	)
 	if err != nil {

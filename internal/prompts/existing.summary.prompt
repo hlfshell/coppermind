@@ -1,2 +1,1 @@
-The following summary has already been generated for the conversation. If the conversation was too long, it is possible that the conversation history has been cut short and we are seeing if the summary changed with the most recent messages. The existing summary:
-{summary}
+The following conversation also already has a summary generated for it in this fashion; you are seeing newer parts of the conversation. If the summary still matches what is being discussed, return it unchanged. Otherwise modify it slightly taking into account the new messages.

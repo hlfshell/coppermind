@@ -33,6 +33,13 @@ func (conversation *Conversation) Equal(other *Conversation) bool {
 		timeDifference < time.Second
 }
 
+func (conversation *Conversation) PastNMessages(n int) []*Message {
+	if n > len(conversation.Messages) {
+		n = len(conversation.Messages)
+	}
+	return conversation.Messages[len(conversation.Messages)-n:]
+}
+
 type Message struct {
 	ID           string    `json:"id,omitempty"`
 	Conversation string    `json:"conversation,omitempty" db:"conversation"`

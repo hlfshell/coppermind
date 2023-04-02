@@ -60,9 +60,9 @@ func (summary *Summary) StringToKeywords(input string) {
 	summary.Keywords = strings.Split(input, ",")
 }
 
-func (summary *Summary) StringWithConversation() string {
+func (summary *Summary) String() string {
 	return stringFormatter.Format(
-		"{0} | {1} | {2} | {3}",
+		"({0} | {1} | {2} | {3})",
 		summary.User,
 		summary.ConversationStartedAt.Format("January 2nd 06 15:04"),
 		summary.KeywordsToString(),

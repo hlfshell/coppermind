@@ -11,7 +11,6 @@ type LLM interface {
 		identity []*chat.Prompt,
 		conversation *chat.Conversation,
 		previousConversations []*memory.Summary,
-		summary *memory.Summary,
 		message *chat.Message,
 	) (*chat.Response, error)
 	Summarize(
