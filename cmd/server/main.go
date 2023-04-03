@@ -54,6 +54,12 @@ func serve(sqliteFile string, port string) {
 		fmt.Println(err)
 		os.Exit(3)
 	}
+	err = db.Migrate()
+	if err != nil {
+		fmt.Println("Migrate error")
+		fmt.Println(err)
+		os.Exit(3)
+	}
 
 	agent := agent.NewAgent("Rose", db, client)
 
