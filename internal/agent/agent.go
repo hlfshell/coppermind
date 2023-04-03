@@ -172,7 +172,7 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 		}
 
 		if summary == nil {
-			return "", nil
+			return uuid.New().String(), nil
 		}
 
 		shouldContinue, err := agent.llm.ConversationContinuance(
@@ -185,7 +185,7 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 		} else if shouldContinue {
 			return conversation, nil
 		} else {
-			return "", nil
+			return uuid.New().String(), nil
 		}
 	}
 	return conversation, nil
