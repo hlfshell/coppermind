@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	_ "embed"
@@ -19,9 +21,12 @@ type Agent struct {
 	llm llm.LLM
 
 	//Chat specific
-	chatInstructions []*chat.Prompt
-	identity         []*chat.Prompt
-	maxChatMessages  int
+	chatInstructions                     []*chat.Prompt
+	identity                             []*chat.Prompt
+	maxChatMessages                      int
+	maintainConversation                 time.Duration
+	maxConversationIdleTime              time.Duration
+	conversationContinuationInstructions []*chat.Prompt
 
 	//Summary specific
 	summaryInstructions                    []*chat.Prompt
@@ -37,17 +42,21 @@ type Agent struct {
 func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 	instructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Instructions}}
 	identity := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Identity}}
+	conversationCheckInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.ConversationContinuous}}
 	summaryInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Summary}}
 
 	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
 
 	agent := &Agent{
-		Name:             name,
-		db:               db,
-		llm:              llm,
-		chatInstructions: instructions,
-		identity:         identity,
-		maxChatMessages:  20,
+		Name:                                 name,
+		db:                                   db,
+		llm:                                  llm,
+		chatInstructions:                     instructions,
+		identity:                             identity,
+		maxChatMessages:                      20,
+		maintainConversation:                 10 * time.Minute,
+		maxConversationIdleTime:              6 * time.Hour,
+		conversationContinuationInstructions: conversationCheckInstructions,
 
 		summaryInstructions:                    summaryInstructions,
 		summaryTicker:                          time.NewTicker(60 * time.Second),
@@ -68,19 +77,18 @@ func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 	// fmt.Println(err)
 	// os.Exit(3)
 
-	// go func() {
-	// 	for {
-	// 		<-agent.summaryTicker.C
-	// 		fmt.Println("Summary Daemon triggered")
-	// 		err := agent.SummaryDaemon()
-	// 		if err != nil {
-	// 			fmt.Println("Summary error")
-	// 			fmt.Println(err)
-	// 			os.Exit(3)
-	// 		}
-
-	// 	}
-	// }()
+	go func() {
+		for {
+			<-agent.summaryTicker.C
+			fmt.Println("Summary Daemon triggered")
+			err := agent.SummaryDaemon()
+			if err != nil {
+				fmt.Println("Summary error")
+				fmt.Println(err)
+				os.Exit(3)
+			}
+		}
+	}()
 
 	return agent
 }
@@ -150,9 +158,35 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 	conversation, timestamp, err := agent.db.GetLatestConversation(msg.Agent, msg.User)
 	if err != nil {
 		return "", err
-	}
-	if time.Now().After(timestamp.Add(5*time.Minute)) || conversation == "" {
+	} else if conversation == "" ||
+		time.Now().Add(-1*agent.maxConversationIdleTime).After(timestamp) {
 		conversation = uuid.New().String()
+	} else {
+		retrievedConversation, err := agent.db.GetConversation(conversation)
+		if err != nil {
+			return "", err
+		}
+		summary, err := agent.db.GetSummaryByConversation(conversation)
+		if err != nil {
+			return "", err
+		}
+
+		if summary == nil {
+			return "", nil
+		}
+
+		shouldContinue, err := agent.llm.ConversationContinuance(
+			agent.conversationContinuationInstructions,
+			retrievedConversation,
+			summary,
+		)
+		if err != nil {
+			return "", nil
+		} else if shouldContinue {
+			return conversation, nil
+		} else {
+			return "", nil
+		}
 	}
 	return conversation, nil
 }

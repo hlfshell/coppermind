@@ -339,3 +339,74 @@ func (ai *OpenAI) parseLearnResponse(conversation *chat.Conversation, raw string
 	summary.StringToKeywords(split[0])
 	return summary, nil
 }
+
+func (ai *OpenAI) ConversationContinuance(
+	instructions []*chat.Prompt,
+	conversation *chat.Conversation,
+	summary *memory.Summary,
+) (bool, error) {
+	data, err := ai.prepareConversationContinuanceMessage(instructions, conversation, summary)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := ai.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    openai.GPT3Dot5Turbo,
+			Messages: data,
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	fmt.Println("continuance test", resp)
+	return ai.parseConversationContinuanceResponse(resp.Choices[0].Message.Content), nil
+}
+
+func (ai *OpenAI) prepareConversationContinuanceMessage(
+	instructions []*chat.Prompt,
+	conversation *chat.Conversation,
+	summary *memory.Summary,
+) ([]openai.ChatCompletionMessage, error) {
+	msgs := []openai.ChatCompletionMessage{}
+
+	for _, instruction := range instructions {
+		msgs = append(msgs, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: instruction.Content,
+		})
+	}
+
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: "Summary:\n",
+	})
+
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: summary.String(),
+	})
+
+	msgs = append(msgs, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleSystem,
+		Content: "Converstaion History:\n",
+	})
+
+	for _, msg := range conversation.Messages {
+		content, err := msg.JSON()
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: content + "\n",
+		})
+	}
+
+	return msgs, nil
+}
+
+func (ai *OpenAI) parseConversationContinuanceResponse(raw string) bool {
+	return strings.ToLower(raw) == "true"
+}

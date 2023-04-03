@@ -20,6 +20,9 @@ var SummaryIncluded string
 //go:embed chat.previous.summary.prompt
 var PreviousSummary string
 
+//go:embed conversation.continuance.prompt
+var ConversationContinuous string
+
 // ============
 // Summary Prompts
 // ============
