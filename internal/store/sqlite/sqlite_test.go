@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func CreateSqlLiteStore() (*SqliteStore, error) {
+func createSqlLiteStore() (*SqliteStore, error) {
 	store, err := NewSqliteStore(":memory:")
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func TestSqlite(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run("TestSqlite"+name, func(t *testing.T) {
-			sqlite, err := CreateSqlLiteStore()
+			sqlite, err := createSqlLiteStore()
 
 			require.Nil(t, err)
 			test(t, sqlite)

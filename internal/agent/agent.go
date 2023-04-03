@@ -48,9 +48,10 @@ func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
 	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
 
 	agent := &Agent{
-		Name:                                 name,
-		db:                                   db,
-		llm:                                  llm,
+		Name: name,
+		db:   db,
+		llm:  llm,
+
 		chatInstructions:                     instructions,
 		identity:                             identity,
 		maxChatMessages:                      20,
@@ -158,10 +159,20 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 	conversation, timestamp, err := agent.db.GetLatestConversation(msg.Agent, msg.User)
 	if err != nil {
 		return "", err
-	} else if conversation == "" ||
-		time.Now().Add(-1*agent.maxConversationIdleTime).After(timestamp) {
+	} else if time.Now().Add(-1 * agent.maintainConversation).Before(timestamp) {
+		// This handles the conversation existing, and it being within the maintain
+		// window of a conversation
+		return conversation, nil
+	} else if conversation == "" {
+		// This handles the situation of there is no existing conversation at all
+		conversation = uuid.New().String()
+	} else if time.Now().Add(-1 * agent.maxConversationIdleTime).After(timestamp) {
+		// We have a conversation that exists, but it's beyond the allowed time to
+		// continue the conversation; therefore it's an automatic new one
 		conversation = uuid.New().String()
 	} else {
+		// Finally, this sees via the LLM if it should be a conversation
+		// continuance or a new conversation.
 		retrievedConversation, err := agent.db.GetConversation(conversation)
 		if err != nil {
 			return "", err
