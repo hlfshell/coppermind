@@ -14,12 +14,12 @@ type mockLLM struct {
 	conversationContinuanceError    error
 }
 
-func (llm *mockLLM) SendMessage(instructions []*chat.Prompt, identity []*chat.Prompt, conversation *chat.Conversation, previousConversations []*memory.Summary, message *chat.Message) (*chat.Response, error) {
+func (llm *mockLLM) SendMessage(identity string, conversation *chat.Conversation, previousConversations []*memory.Summary, knowledge []*memory.Knowledge, message *chat.Message) (*chat.Response, error) {
 	return llm.sendMessageResponse, llm.sendMessageError
 }
 
 func (llm *mockLLM) ConversationContinuance(
-	instructions []*chat.Prompt,
+	message *chat.Message,
 	conversation *chat.Conversation,
 	summary *memory.Summary,
 ) (bool, error) {
@@ -27,7 +27,6 @@ func (llm *mockLLM) ConversationContinuance(
 }
 
 func (llm *mockLLM) Summarize(
-	instructions []*chat.Prompt,
 	history *chat.Conversation,
 	previousSummary *memory.Summary,
 ) (*memory.Summary, error) {
@@ -35,8 +34,12 @@ func (llm *mockLLM) Summarize(
 }
 
 func (llm *mockLLM) Learn(
-	instructions []*chat.Prompt,
 	history *chat.Conversation,
+	summary *memory.Summary,
 ) ([]*memory.Knowledge, error) {
 	return nil, nil
+}
+
+func (llm *mockLLM) EstimateTokens(input string) int {
+	return int(len(input) / 4)
 }
