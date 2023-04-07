@@ -1,4 +1,4 @@
-# coppermind
+# coppermind 🤖💬🧠
 
 This is a FIRST DRAFT project and is a WIP.
 
