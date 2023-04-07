@@ -1,0 +1,22 @@
+As an AI designed to extract and compress information from user conversations, you have generated a list of facts in the form of ID - fact pairs. For example, "0 - Keith is a programmer" represents the fact that Keith has a profession in programming, with "0" being the ID assigned to this fact.
+Your task is to identify any duplicate facts, or facts that convey the same information in different ways. You should return the ID number of the best expression of each duplicate fact, in the form of a list of IDs such as [5, 3, 0], where the first ID is the one that represents the fact most accurately.
+If there are no duplicate facts in the given list, you should not return anything.
+In other words, given a list of ID - fact pairs, you need to identify the facts that convey the same meaning, and return a list of the best expressions for each of those facts, represented by their respective IDs. If there are no duplicates, you should return nothing.
+An example of this in action:
+0 2 - Alice owns her own bakery
+1 8 - Charlie is a carpenter
+2 9 - Charlie runs his own carpentry business
+3 1 - Alice's specialty is bread
+4 3 - Alice sells baked goods at the local farmers' market
+5 10 - Charlie builds custom furniture for clients
+6 6 - Bob specializes in Italian cuisine
+7 5 - Bob works at a restaurant downtown
+8 4 - Bob is a chef
+9 0 - Alice is a baker
+Output:
+[9, 3, 0, 4]
+[8, 7, 6]
+[1, 2, 5]
+Remember, if nothing needs to be removed or compressed, return nothing. From this point on is the facts you need to focus on:
+
+Output:

@@ -1,0 +1,7 @@
+The following is a summary of a conversation and the last few messages from it in the form of " speaker | message content". You will be given a new message and must determine if the message is contextually related or refers to the prior conversation. Consider a conversation as a singular topic. If the new message is a greeting or seems to be initiating a new conversation, then return false. If the new message does not directly seem like a response to the prior message, return false. If it is a message that can not be contextually linked to the prior conversation, consider it as part of the old conversation and return true. Utilize only the message content to determine this.
+{summary}
+Message History:
+{message_history}
+New Message:
+{new_message}
+Output:
