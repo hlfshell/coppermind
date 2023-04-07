@@ -11,9 +11,6 @@ import (
 //go:embed instructions/chat.prompt
 var Instructions string
 
-//go:embed instructions/summary.included.prompt
-var SummaryIncluded string
-
 //go:embed instructions/chat.previous.summary.prompt
 var PreviousSummary string
 
