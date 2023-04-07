@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/agent"
 	"github.com/hlfshell/coppermind/internal/llm/openai"
+	"github.com/hlfshell/coppermind/internal/prompts"
 	"github.com/hlfshell/coppermind/internal/store/sqlite"
 	"github.com/hlfshell/coppermind/pkg/chat"
 
@@ -58,7 +59,7 @@ func run(name string, sqliteFile string) {
 	}
 	openai := openai.NewOpenAI(apiKey)
 
-	agent := agent.NewAgent("Rose", store, openai)
+	agent := agent.NewAgent("Rose", store, prompts.Rose, openai)
 
 	fmt.Println("Talk to your bot")
 

@@ -2,14 +2,12 @@ package agent
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	_ "embed"
 
 	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/llm"
-	"github.com/hlfshell/coppermind/internal/prompts"
 	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/chat"
 )
@@ -21,73 +19,40 @@ type Agent struct {
 	llm llm.LLM
 
 	//Chat specific
-	chatInstructions                     []*chat.Prompt
-	identity                             []*chat.Prompt
-	maxChatMessages                      int
-	maintainConversation                 time.Duration
-	maxConversationIdleTime              time.Duration
-	conversationContinuationInstructions []*chat.Prompt
+	identity                string
+	maxChatMessages         int
+	maintainConversation    time.Duration
+	maxConversationIdleTime time.Duration
 
 	//Summary specific
-	summaryInstructions                    []*chat.Prompt
-	summaryTicker                          *time.Ticker
+	daemonTicker                           *time.Ticker
 	summaryMinMessages                     int
 	summaryMinConversationTime             time.Duration
 	summaryMinMessagesToForceSummarization int
-
-	//Knowledge specific
-	knowledgeInstructions []*chat.Prompt
 }
 
-func NewAgent(name string, db store.Store, llm llm.LLM) *Agent {
-	instructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Instructions}}
-	identity := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Identity}}
-	conversationCheckInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.ConversationContinuous}}
-	summaryInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Summary}}
-
-	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
-
+func NewAgent(name string, db store.Store, identity string, llm llm.LLM) *Agent {
 	agent := &Agent{
 		Name: name,
 		db:   db,
 		llm:  llm,
 
-		chatInstructions:                     instructions,
-		identity:                             identity,
-		maxChatMessages:                      20,
-		maintainConversation:                 10 * time.Minute,
-		maxConversationIdleTime:              6 * time.Hour,
-		conversationContinuationInstructions: conversationCheckInstructions,
+		identity:                identity,
+		maxChatMessages:         20,
+		maintainConversation:    10 * time.Minute,
+		maxConversationIdleTime: 6 * time.Hour,
 
-		summaryInstructions:                    summaryInstructions,
-		summaryTicker:                          time.NewTicker(60 * time.Second),
+		daemonTicker: time.NewTicker(60 * time.Second),
+
 		summaryMinMessages:                     5,
 		summaryMinConversationTime:             5 * time.Minute,
 		summaryMinMessagesToForceSummarization: 15,
-
-		knowledgeInstructions: knowledgeInstructions,
 	}
-
-	// err := agent.SummaryDaemon()
-	// fmt.Println("done")
-	// fmt.Println(err)
-	// os.Exit(3)
-
-	// err := agent.KnowledgeDaemon()
-	// fmt.Println("done")
-	// fmt.Println(err)
-	// os.Exit(3)
 
 	go func() {
 		for {
-			<-agent.summaryTicker.C
-			fmt.Println("Summary Daemon triggered")
-			err := agent.SummaryDaemon()
-			if err != nil {
-				fmt.Println("Summary error")
-				fmt.Println(err)
-				os.Exit(3)
-			}
+			<-agent.daemonTicker.C
+			agent.RunDaemons()
 		}
 	}()
 
@@ -104,6 +69,7 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 			return nil, err
 		}
 		msg.Conversation = conversation
+		fmt.Println("Chose conversation: ", msg.Conversation)
 	}
 
 	// Load up the history if any exists
@@ -130,12 +96,18 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 		return nil, err
 	}
 
+	// Find associated facts from prior conversations
+	knowledge, err := agent.db.GetKnowlegeByAgentAndUser(msg.Agent, msg.User)
+	if err != nil {
+		return nil, err
+	}
+
 	// Have the LLM deal with the message as expected
 	response, err := agent.llm.SendMessage(
-		agent.chatInstructions,
 		agent.identity,
 		history,
 		pastSummaries,
+		knowledge,
 		msg,
 	)
 	if err != nil {
@@ -187,7 +159,7 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 		}
 
 		shouldContinue, err := agent.llm.ConversationContinuance(
-			agent.conversationContinuationInstructions,
+			msg,
 			retrievedConversation,
 			summary,
 		)

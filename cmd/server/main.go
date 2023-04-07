@@ -7,6 +7,7 @@ import (
 
 	"github.com/hlfshell/coppermind/internal/agent"
 	"github.com/hlfshell/coppermind/internal/llm/openai"
+	"github.com/hlfshell/coppermind/internal/prompts"
 	"github.com/hlfshell/coppermind/internal/protocol/http"
 	"github.com/hlfshell/coppermind/internal/service"
 	"github.com/hlfshell/coppermind/internal/store/sqlite"
@@ -61,7 +62,7 @@ func serve(sqliteFile string, port string) {
 		os.Exit(3)
 	}
 
-	agent := agent.NewAgent("Rose", db, client)
+	agent := agent.NewAgent("Rose", db, prompts.Rose, client)
 
 	service := service.NewService(agent)
 
