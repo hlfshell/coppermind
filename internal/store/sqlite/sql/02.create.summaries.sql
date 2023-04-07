@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS
         id TEXT NOT NULL PRIMARY KEY,
         conversation TEXT,
         agent TEXT NOT NULL,
-        user VARCHAR NOT NULL,
+        user TEXT NOT NULL,
         keywords TEXT,
         summary TEXT NOT NULL,
         updated_at TIMESTAMP NOT NULL DEFAULT NOW,
@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS
     );
 
 CREATE UNIQUE INDEX IF NOT EXISTS summaries_id_v1 ON Summaries_V1(id);
+CREATE UNIQUE INDEX IF NOT EXISTS summaries_conversation_v1 ON Summaries_V1(conversation);
 CREATE INDEX IF NOT EXISTS summaries_conversation_time_V1 ON Summaries_V1(updated_at);
 CREATE INDEX IF NOT EXISTS summaries_agent_user_time_V1 ON Summaries_V1(agent, user, updated_at);
 
