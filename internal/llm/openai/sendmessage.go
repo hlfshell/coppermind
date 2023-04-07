@@ -119,9 +119,7 @@ func (ai *OpenAI) prepareChatMessage(
 		tokenCount += ai.EstimateTokens(content)
 	}
 
-	content := message.DatedString() + "\n"
-	messagesHistory += content
-	tokenCount += ai.EstimateTokens(content)
+	tokenCount += ai.EstimateTokens(message.DatedString() + "\n")
 
 	prompt = stringFormatter.FormatComplex(
 		prompt,
@@ -132,6 +130,7 @@ func (ai *OpenAI) prepareChatMessage(
 			"knowledge":        knowledgeString,
 			"previous_summary": previousSummaryString,
 			"message_history":  messagesHistory,
+			"message":          message.DatedString() + "\n",
 		},
 	)
 
@@ -149,7 +148,6 @@ func (ai *OpenAI) ConversationContinuance(
 	conversation *chat.Conversation,
 	summary *memory.Summary,
 ) (bool, error) {
-	// data, err := ai.prepareConversationContinuanceMessage(instructions, conversation, summary)
 	data, err := ai.prepareConversationContinuanceMessage(
 		prompts.ConversationContinuance,
 		msg,
