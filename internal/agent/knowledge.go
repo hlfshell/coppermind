@@ -1,42 +1,81 @@
 package agent
 
 import (
-	"fmt"
-
 	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 func (agent *Agent) KnowledgeDaemon() error {
-	conversations, err := agent.identifyConversationsToExtractKnowledge()
-	fmt.Println("conversatons", conversations)
+	conversations, err := agent.db.GetConversationsToExtractKnowledge()
+	if err != nil {
+		return err
+	}
+	err = agent.generateNewKnowledge(conversations)
 	if err != nil {
 		return err
 	}
 
-	for _, conversation := range conversations {
-		knowledge, err := agent.ExtractKnowledge(conversation)
-		if err != nil {
-			return err
-		}
-		fmt.Println("post extraction")
-		fmt.Println(knowledge)
-		//TODO - save to db
-		// return err
+	err = agent.db.ExpireKnowledge()
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
-func (agent *Agent) ExtractKnowledge(conversaton string) ([]*memory.Knowledge, error) {
-	history, err := agent.db.GetConversation(conversaton)
+func (agent *Agent) generateNewKnowledge(conversations []string) error {
+	for _, conversation := range conversations {
+		facts, err := agent.ExtractKnowledge(conversation)
+		if err != nil {
+			return err
+		}
+		for _, facts := range facts {
+			err = agent.db.SaveKnowledge(facts)
+			if err != nil {
+				return err
+			}
+		}
+		agent.db.SetConversationAsKnowledgeExtracted(conversation)
+	}
+
+	return nil
+}
+
+// func (agent *Agent) compressKnowledge(conversationIds []string) error {
+// users := []string{}
+// for _, id := range conversationIds {
+// 	conversation, err := agent.db.GetConversation(id)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	users = append(users, conversation.User)
+// }
+
+// for _, user := range users {
+// 	facts, err := agent.db.GetKnowlegeByAgentAndUser(agent.Name, user)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// agent.llm.CompressFacts(agent)
+// }
+// 	return nil
+// }
+
+func (agent *Agent) ExtractKnowledge(conversation string) ([]*memory.Knowledge, error) {
+	history, err := agent.db.GetConversation(conversation)
 	if err != nil {
 		return nil, err
 	}
 
-	knowledge, err := agent.llm.Learn(agent.knowledgeInstructions, history)
+	summary, err := agent.db.GetSummaryByConversation(conversation)
+	if err != nil {
+		return nil, err
+	}
+
+	knowledge, err := agent.llm.Learn(
+		history,
+		summary,
+	)
 
 	return knowledge, err
-}
-
-func (agent *Agent) identifyConversationsToExtractKnowledge() ([]string, error) {
-	return []string{"61f5ea47-7e1f-4326-8b13-042b32b83c0a"}, nil
 }
