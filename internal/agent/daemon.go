@@ -22,17 +22,17 @@ func (agent *Agent) RunDaemons() {
 		}
 	}()
 
-	wait.Add(1)
-	func() {
-		defer wait.Done()
-		fmt.Println("Knowledge Daemon triggered")
-		err := agent.KnowledgeDaemon()
-		if err != nil {
-			fmt.Println("Knowledge error")
-			fmt.Println(err)
-			os.Exit(3)
-		}
-	}()
+	// wait.Add(1)
+	// func() {
+	// 	defer wait.Done()
+	// 	fmt.Println("Knowledge Daemon triggered")
+	// 	err := agent.KnowledgeDaemon()
+	// 	if err != nil {
+	// 		fmt.Println("Knowledge error")
+	// 		fmt.Println(err)
+	// 		os.Exit(3)
+	// 	}
+	// }()
 
 	wait.Wait()
 }
