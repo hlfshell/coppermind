@@ -18,7 +18,7 @@ var SummaryIncluded string
 var PreviousSummary string
 
 //go:embed instructions/conversation.continuance.prompt
-var ConversationContinuous string
+var ConversationContinuance string
 
 // ============
 // Summary Prompts
