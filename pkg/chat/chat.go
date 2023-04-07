@@ -108,13 +108,3 @@ func (response *Response) ToMessage(conversation string) *Message {
 		Conversation: conversation,
 	}
 }
-
-type Prompt struct {
-	Content string
-	Type    PromptType
-}
-
-type PromptType string
-
-const IdentityPrompt PromptType = "identity"
-const SetupPrompt PromptType = "setup"
