@@ -28,31 +28,19 @@ func newTestingAgent(t *testing.T) *Agent {
 	store, err := createSqlLiteStore()
 	require.Nil(t, err)
 
-	instructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Instructions}}
-	identity := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Identity}}
-	conversationCheckInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.ConversationContinuous}}
-	summaryInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Summary}}
-
-	knowledgeInstructions := []*chat.Prompt{&chat.Prompt{Type: chat.SetupPrompt, Content: prompts.Knowledge}}
-
 	return &Agent{
 		db:  store,
 		llm: &mockLLM{},
 
-		chatInstructions:                     instructions,
-		identity:                             identity,
-		maxChatMessages:                      20,
-		maintainConversation:                 10 * time.Minute,
-		maxConversationIdleTime:              6 * time.Hour,
-		conversationContinuationInstructions: conversationCheckInstructions,
+		identity:                prompts.Rose,
+		maxChatMessages:         20,
+		maintainConversation:    10 * time.Minute,
+		maxConversationIdleTime: 6 * time.Hour,
 
-		summaryInstructions:                    summaryInstructions,
-		summaryTicker:                          time.NewTicker(60 * time.Second),
+		daemonTicker:                           time.NewTicker(60 * time.Second),
 		summaryMinMessages:                     5,
 		summaryMinConversationTime:             5 * time.Minute,
 		summaryMinMessagesToForceSummarization: 15,
-
-		knowledgeInstructions: knowledgeInstructions,
 	}
 }
 
