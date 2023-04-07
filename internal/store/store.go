@@ -13,7 +13,7 @@ import (
 // into categorical sections in order
 type Store interface {
 	//===============================
-	//Management functions
+	// Management functions
 	//===============================
 
 	/*
@@ -27,7 +27,7 @@ type Store interface {
 	Migrate() error
 
 	//===============================
-	//Messages
+	// Messages
 	//===============================
 
 	// SaveMessage will upsert save a given message.
@@ -49,14 +49,14 @@ type Store interface {
 	GetLatestConversation(agent string, user string) (string, time.Time, error)
 
 	//===============================
-	//Summaries
+	// Summaries
 	//===============================
 
 	// SaveSummary will upsert a given summary into the store
 	SaveSummary(summary *memory.Summary) error
 
 	/*
-		GetConversationsToUpdate will find any conversation past
+		GetConversationsToSummarize will find any conversation past
 		a certain size or age that does not yet have a summary,
 		or return summaries that have summaries but have
 		additional messages to include in its summary
@@ -105,7 +105,53 @@ type Store interface {
 
 	/*
 		ExcludeConversationFromSummary marks a given conversation as
-		one to ignore if a conersation
+		one to ignore if a conversation
 	*/
 	ExcludeConversationFromSummary(conversation string) error
+
+	//===============================
+	// Knowledge
+	//===============================
+
+	/*
+		SaveKnowledge takes a given bit of knowledge and saves
+		it.
+	*/
+	SaveKnowledge(knowledge *memory.Knowledge) error
+
+	/*
+		GetConversationsToExtractKnowledge grabs any updates
+		to any conversation it can. It has less stringent rules
+		than the summarization model since we have no need to
+		hold off on waiting to re-extract since we ask the
+		LLM to avoid duplication of knowledge.
+	*/
+	GetConversationsToExtractKnowledge() ([]string, error)
+
+	/*
+		SetconversationAsKnowledgeExtracted marks a given conversation
+		as having its knowledge extracted. This should prevent the
+		conversation from being scanned again unless new messages are
+		added
+	*/
+	SetConversationAsKnowledgeExtracted(conversation string) error
+
+	/*
+		GetKnowledgeByAgentAndUser will return all knowledge generated
+		from conversation between the user and agent. Expired knowledge
+		should not be included.
+	*/
+	GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error)
+
+	/*
+		GetKnowledgeGroupedByAgentAndUser will return all knowledge across
+		all agents, but group by agent/user combination. Again, expired
+		knowledge is not returned.
+	*/
+	GetKnowledgeGroupedByAgentAndUser(agent string, user string) (map[string]map[string][]*memory.Knowledge, error)
+
+	/*
+		ExpireKnowledge erases all knowledge that should have been expired
+	*/
+	ExpireKnowledge() error
 }
