@@ -21,7 +21,7 @@ func (agent *Agent) Summarize(conversationId string) (*memory.Summary, error) {
 	}
 
 	// Ask the llm to generate the summaries
-	summary, err := agent.llm.Summarize(agent.summaryInstructions, conversation, existingSummary)
+	summary, err := agent.llm.Summarize(conversation, existingSummary)
 	if err != nil {
 		return nil, err
 	} else if summary == nil {
