@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/hlfshell/coppermind/internal/agent"
-	"github.com/hlfshell/coppermind/internal/llm"
+	"github.com/hlfshell/coppermind/internal/llm/openai"
 	"github.com/hlfshell/coppermind/internal/protocol/http"
 	"github.com/hlfshell/coppermind/internal/service"
 	"github.com/hlfshell/coppermind/internal/store/sqlite"
@@ -40,13 +40,13 @@ func main() {
 }
 
 func serve(sqliteFile string, port string) {
-	apiKey := os.Getenv("OPENAI_KEY")
+	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		fmt.Println("Open AI Key must be specified")
 		os.Exit(3)
 	}
 
-	client := llm.NewOpenAI(apiKey)
+	client := openai.NewOpenAI(apiKey)
 
 	db, err := sqlite.NewSqliteStore(sqliteFile)
 	if err != nil {
