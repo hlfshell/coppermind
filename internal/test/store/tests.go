@@ -493,3 +493,153 @@ func ExcludeConversationFromSummary(t *testing.T, store store.Store) {
 	require.Nil(t, err)
 	assert.Equal(t, 0, len(conversations))
 }
+
+func ExpireKnowledge(t *testing.T, store store.Store) {
+	// Create three knowledge entries. Ensure they can be read back.
+	// Then ensure that we can remove them by age, leaving the non-
+	// expired ones.
+	knowledge1 := &memory.Knowledge{
+		ID:        uuid.New().String(),
+		Agent:     "Rose",
+		User:      "Abby",
+		Subject:   "Abby",
+		Predicate: "is",
+		Object:    "hungry",
+		CreatedAt: time.Now().Add(-1 * time.Hour),
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	knowledge2 := &memory.Knowledge{
+		ID:        uuid.New().String(),
+		Agent:     "Rose",
+		User:      "Keith",
+		Subject:   "Keith",
+		Predicate: "programmed",
+		Object:    "Rose",
+		CreatedAt: time.Now().Add(-2 * time.Hour),
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
+	}
+
+	for _, fact := range []*memory.Knowledge{knowledge1, knowledge2} {
+		err := store.SaveKnowledge(fact)
+		require.Nil(t, err)
+	}
+
+	// Ensure they're there.
+	facts, err := store.GetKnowlegeByAgentAndUser(knowledge1.Agent, knowledge1.User)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(facts))
+	assert.True(t, knowledge1.Equal(facts[0]))
+
+	facts, err = store.GetKnowlegeByAgentAndUser(knowledge2.Agent, knowledge2.User)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(facts))
+	assert.True(t, knowledge2.Equal(facts[0]))
+
+	// Now expire the older fact (knowledge2)
+	err = store.ExpireKnowledge()
+	require.Nil(t, err)
+
+	facts, err = store.GetKnowlegeByAgentAndUser(knowledge1.Agent, knowledge1.User)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(facts))
+	assert.True(t, knowledge1.Equal(facts[0]))
+
+	facts, err = store.GetKnowlegeByAgentAndUser(knowledge2.Agent, knowledge2.User)
+	require.Nil(t, err)
+	require.Equal(t, 0, len(facts))
+}
+
+func SetConversationAsKnowledgeExtracted(t *testing.T, store store.Store) {
+	conversations, err := store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+
+	conversation := uuid.New().String()
+	message := &chat.Message{
+		ID:           uuid.New().String(),
+		Conversation: conversation,
+		Agent:        "Rose",
+		User:         "Keith",
+		Content:      "Beep boop I'm a robot!",
+		CreatedAt:    time.Now().Add(-5 * time.Minute),
+	}
+	err = store.SaveMessage(message)
+	require.Nil(t, err)
+
+	// Ensure we have the conversation present and selected
+	conversations, err = store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	require.Equal(t, 1, len(conversations))
+	assert.Equal(t, conversation, conversations[0])
+
+	// Now mark it as extracted
+	err = store.SetConversationAsKnowledgeExtracted(conversation)
+	require.Nil(t, err)
+
+	conversations, err = store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+}
+
+func GetConversationsToExtractKnowledge(t *testing.T, store store.Store) {
+	conversations, err := store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+
+	// Create a few new conversation
+	msg1 := &chat.Message{
+		ID:           uuid.New().String(),
+		Conversation: uuid.New().String(),
+		Agent:        "Rose",
+		User:         "Keith",
+		Content:      "Beep boop I'm a robot!",
+		CreatedAt:    time.Now().Add(-5 * time.Minute),
+	}
+	err = store.SaveMessage(msg1)
+	require.Nil(t, err)
+	msg2 := &chat.Message{
+		ID:           uuid.New().String(),
+		Conversation: uuid.New().String(),
+		Agent:        "Rose",
+		User:         "Keith",
+		Content:      "Beep boop I'm a robot!",
+		CreatedAt:    time.Now().Add(-5 * time.Minute),
+	}
+	err = store.SaveMessage(msg2)
+	require.Nil(t, err)
+
+	conversations, err = store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	require.Equal(t, 2, len(conversations))
+	assert.Contains(t, conversations, msg1.Conversation)
+	assert.Contains(t, conversations, msg2.Conversation)
+
+	// Mark them both as extracted and show that they don't
+	// get picked up anymore
+	err = store.SetConversationAsKnowledgeExtracted(msg1.Conversation)
+	require.Nil(t, err)
+	err = store.SetConversationAsKnowledgeExtracted(msg2.Conversation)
+	require.Nil(t, err)
+
+	conversations, err = store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(conversations))
+
+	// Create an additional message in the future so that it is
+	// picked up despite the extraction
+	msg3 := &chat.Message{
+		ID:           uuid.New().String(),
+		Conversation: msg1.Conversation,
+		Agent:        "Rose",
+		User:         "Keith",
+		Content:      "Beep boop I'm a robot!",
+		CreatedAt:    time.Now().Add(5 * time.Minute),
+	}
+	err = store.SaveMessage(msg3)
+	require.Nil(t, err)
+
+	conversations, err = store.GetConversationsToExtractKnowledge()
+	require.Nil(t, err)
+	require.Equal(t, 1, len(conversations))
+	assert.Contains(t, conversations, msg1.Conversation)
+}
