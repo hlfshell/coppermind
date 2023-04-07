@@ -65,15 +65,13 @@ func (msg *Message) Equal(other *Message) bool {
 		timeDifference < time.Second
 }
 
-func (msg *Message) String() string {
+func (msg *Message) DatedString() string {
 	var str strings.Builder
+	str.WriteString(msg.CreatedAt.Format("Jan, 2 06 15:04"))
+	str.WriteString(" | ")
 	str.WriteString(msg.User)
 	str.WriteString(" | ")
-	str.WriteString(msg.Tone)
-	str.WriteString(" | ")
 	str.WriteString(msg.Content)
-	str.WriteString(" | ")
-	str.WriteString(msg.CreatedAt.String())
 
 	return str.String()
 }
