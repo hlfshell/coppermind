@@ -49,7 +49,7 @@ func (ai *OpenAI) SendMessage(
 	fmt.Println(resp.Choices[0].Message.Content)
 
 	return &chat.Response{
-		Name:    "Rose",
+		Name:    message.Agent,
 		Tone:    "neutral",
 		Content: resp.Choices[0].Message.Content,
 	}, nil
@@ -126,7 +126,7 @@ func (ai *OpenAI) prepareChatMessage(
 	prompt = stringFormatter.FormatComplex(
 		prompt,
 		map[string]interface{}{
-			"name":             "Rose",
+			"name":             message.Agent,
 			"identity":         identity,
 			"summaries":        summariesString,
 			"knowledge":        knowledgeString,
