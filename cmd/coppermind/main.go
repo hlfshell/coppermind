@@ -15,8 +15,8 @@ func main() {
 		Commands: []*cli.Command{
 			quickstartCommand,
 			agentCommand,
+			userCommand,
 			serverCommand,
-			smsCommand,
 			chatCommand,
 		},
 		// Action: func(cli *cli.Context) error {
@@ -70,45 +70,37 @@ var serverCommand *cli.Command = &cli.Command{
 		{
 			Name:  "config",
 			Usage: "Create or validate a config for server usage",
-			Subcommands: []*cli.Command{
-				{
-					Name:  "create",
-					Usage: "Create a default config file",
-				},
-				{
-					Name:  "validate",
-					Usage: "validate an existing config file",
-				},
-				{
-					Name:  "serve",
-					Usage: "Start the server",
-				},
+			Action: func(cli *cli.Context) error {
+				return nil
 			},
 		},
 	},
 }
 
-var smsCommand *cli.Command = &cli.Command{
-	Name:  "sms",
-	Usage: "Start an sms endpoint server for agents",
+var userCommand *cli.Command = &cli.Command{
+	Name:  "user",
+	Usage: "Manage authorized users",
 	Subcommands: []*cli.Command{
 		{
-			Name:  "config",
-			Usage: "Create or validate a config for sms server usage",
-			Subcommands: []*cli.Command{
-				{
-					Name:  "create",
-					Usage: "Create a default config file",
-				},
-				{
-					Name:  "validate",
-					Usage: "validate an existing config file",
-				},
+			Name:  "create",
+			Usage: "Create a new user",
+			Action: func(cli *cli.Context) error {
+				return nil
 			},
 		},
 		{
-			Name:  "serve",
-			Usage: "Start the sms server",
+			Name:  "delete",
+			Usage: "Delete a user",
+			Action: func(cli *cli.Context) error {
+				return nil
+			},
+		},
+		{
+			Name:  "token",
+			Usage: "Generate a user token",
+			Action: func(cli *cli.Context) error {
+				return nil
+			},
 		},
 	},
 }
