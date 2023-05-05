@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hlfshell/coppermind/internal/prompts"
+	"github.com/hlfshell/coppermind/internal/utils"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/sashabaranov/go-openai"
@@ -51,7 +52,7 @@ func (ai *OpenAI) SendMessage(
 	return &chat.Response{
 		Name:    message.Agent,
 		Tone:    "neutral",
-		Content: resp.Choices[0].Message.Content,
+		Content: utils.FilterNamePrepend(message.Agent, resp.Choices[0].Message.Content),
 	}, nil
 }
 
