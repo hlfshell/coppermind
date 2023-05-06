@@ -6,8 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/store"
+	"github.com/hlfshell/coppermind/pkg/agents"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
+	"github.com/hlfshell/coppermind/pkg/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +23,8 @@ func SaveAndGetMessage(t *testing.T, store store.LowLevelStore) {
 		ID:           uuid.New().String(),
 		User:         "Huey",
 		Agent:        "Luey",
+		From:         "Huey",
 		Content:      "Where's Dewy?",
-		Tone:         "inquisitive",
 		Conversation: uuid.New().String(),
 	}
 
@@ -44,8 +46,8 @@ func DeleteMessage(t *testing.T, store store.LowLevelStore) {
 		ID:           uuid.New().String(),
 		User:         "Yoshi",
 		Agent:        "Mario",
+		From:         "Yoshi",
 		Content:      "Need a ride?",
-		Tone:         "inquisitive",
 		Conversation: uuid.New().String(),
 	}
 
@@ -76,8 +78,8 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 		ID:           uuid.New().String(),
 		User:         "Peach",
 		Agent:        "Bowswer",
+		From:         "Peach",
 		Content:      "I need some space...",
-		Tone:         "inquisitive",
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now().Add(-5 * time.Minute),
 	}
@@ -85,8 +87,8 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 		ID:           uuid.New().String(),
 		User:         "Yoshi",
 		Agent:        "Mario",
+		From:         "Yoshi",
 		Content:      "Need a ride?",
-		Tone:         "inquisitive",
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now().Add(-24 * time.Hour),
 	}
@@ -94,8 +96,8 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 		ID:           uuid.New().String(),
 		User:         "Peach",
 		Agent:        "Mario",
+		From:         "Peach",
 		Content:      "I just headed over to another castle...",
-		Tone:         "inquisitive",
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now(),
 	}
@@ -196,4 +198,195 @@ func DeleteSummary(t *testing.T, store store.LowLevelStore) {
 
 func ListSummaries(t *testing.T, store store.LowLevelStore) {
 	//TODO
+}
+
+// ===============================
+// Agents
+// ===============================
+
+func SaveAndGetAgent(t *testing.T, store store.LowLevelStore) {
+	agent := &agents.Agent{
+		ID:       uuid.New().String(),
+		Name:     "Hal",
+		Identity: "Super helpful, nothing but",
+	}
+
+	readAgent, err := store.GetAgent(agent.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readAgent)
+
+	err = store.SaveAgent(agent)
+	require.Nil(t, err)
+
+	readAgent, err = store.GetAgent(agent.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, readAgent)
+	assert.Equal(t, agent, readAgent)
+}
+
+func DeleteAgent(t *testing.T, store store.LowLevelStore) {
+	agent := &agents.Agent{
+		ID:       uuid.New().String(),
+		Name:     "Rose",
+		Identity: "Sassy and cynical",
+	}
+
+	readAgent, err := store.GetAgent(agent.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readAgent)
+
+	err = store.SaveAgent(agent)
+	require.Nil(t, err)
+
+	readAgent, err = store.GetAgent(agent.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, readAgent)
+	assert.Equal(t, agent, readAgent)
+
+	err = store.DeleteAgent(agent.ID)
+	require.Nil(t, err)
+
+	readAgent, err = store.GetAgent(agent.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readAgent)
+}
+
+// ===============================
+// Users
+// ===============================
+
+func SaveAndCreatetUser(t *testing.T, store store.LowLevelStore) {
+	user := &users.User{
+		ID:        uuid.New().String(),
+		Name:      "Keith",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	password := "supersecret"
+
+	readUser, err := store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readUser)
+
+	err = store.CreateUser(user, password)
+	require.Nil(t, err)
+
+	readUser, err = store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, readUser)
+	assert.True(t, user.Equal(readUser))
+
+	// Test user creation w/ a password that's too small
+	user = &users.User{
+		ID:        uuid.New().String(),
+		Name:      "Karen",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	password = "short"
+
+	err = store.CreateUser(user, password)
+	require.NotNil(t, err)
+	assert.Equal(t, "invaid password", err.Error())
+}
+
+func GetUserAuth(t *testing.T, store store.LowLevelStore) {
+	user := &users.User{
+		ID:        uuid.New().String(),
+		Name:      "Pepper",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	password := "supersecret"
+
+	readUser, err := store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readUser)
+
+	err = store.CreateUser(user, password)
+	require.Nil(t, err)
+
+	readUser, err = store.GetUser(user.ID)
+	require.Nil(t, err)
+
+	auth, err := store.GetUserAuth(user.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, auth)
+
+	assert.NotEqual(t, password, auth.Password)
+	assert.True(t, auth.CheckPassword(password))
+}
+
+func GenerateUserPasswordResetToken(t *testing.T, store store.LowLevelStore) {
+
+}
+
+func ChangePassword(t *testing.T, store store.LowLevelStore) {
+	// Generate user and ensure it's created with the expected
+	// password
+	user := &users.User{
+		ID:        uuid.New().String(),
+		Name:      "Pepper",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	password := "supersecret"
+
+	readUser, err := store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readUser)
+
+	err = store.CreateUser(user, password)
+	require.Nil(t, err)
+
+	readUser, err = store.GetUser(user.ID)
+	require.Nil(t, err)
+
+	auth, err := store.GetUserAuth(user.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, auth)
+
+	assert.NotEqual(t, password, auth.Password)
+	assert.True(t, auth.CheckPassword(password))
+
+	// Now we will change the password and ensure it's updated
+	newPassword := "even more super secret"
+	err = store.ChangePassword(user.ID, auth.Password, newPassword)
+	require.Nil(t, err)
+
+	auth, err = store.GetUserAuth(user.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, auth)
+
+	assert.False(t, auth.CheckPassword(password))
+	assert.True(t, auth.CheckPassword(newPassword))
+}
+
+func DeleteUser(t *testing.T, store store.LowLevelStore) {
+	user := &users.User{
+		ID:        uuid.New().String(),
+		Name:      "Rebecca",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	password := "supersecret"
+
+	readUser, err := store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readUser)
+
+	err = store.SaveUser(user, password)
+	require.Nil(t, err)
+
+	readUser, err = store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.NotNil(t, readUser)
+	assert.True(t, user.Equal(readUser))
+
+	err = store.DeleteUser(user.ID)
+	require.Nil(t, err)
+
+	readUser, err = store.GetUser(user.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readUser)
 }

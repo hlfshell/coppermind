@@ -4,6 +4,9 @@ import (
 	"github.com/hlfshell/coppermind/pkg/agents"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
+	"github.com/hlfshell/coppermind/pkg/users"
+
+	users_internal "github.com/hlfshell/coppermind/internal/users"
 )
 
 // LowLevelStore is the simple CRUDL (create, read, update
@@ -13,6 +16,63 @@ import (
 // Each object in the scope of coppermind should have associated
 // CRDL functions w/ expected behaviour.
 type LowLevelStore interface {
+	//===============================
+	// Users
+	//===============================
+
+	/*
+		SaveUser will create a given user object. Note that
+		the password is passed unlike other attributes in
+		that it's never returned after writing save on
+		specific request.
+
+		Unlike other objects, SaveUser is a one time write,
+		and will error if it doesn't exists.
+	*/
+	CreateUser(user *users.User, password string) error
+
+	/*
+		GetUser will return a user given its ID
+	*/
+	GetUser(id string) (*users.User, error)
+
+	/*
+		GetUserAuth will return a UserAuth given its ID.
+		This is different than the user object as it's
+		just the authentication related information for
+		the user.
+	*/
+	GetUserAuth(id string) (*users_internal.UserAuth, error)
+
+	/*
+		SaveUserAuth will save a user's authentication
+		information. It may be its own table/object based
+		on the store, or a part of the user. Generally
+		this is called separately from CreateUser, and
+		assumes that the user is already created.
+	*/
+	SaveUserAuth(auth *users_internal.UserAuth) error
+
+	/*
+		GenerateUserPasswordResetToken will generate a new
+		token for resetting a password for the given user,
+		as well as reset the attempts and reset time.
+	*/
+	GenerateUserPasswordResetToken(id string) (string, error)
+
+	/*
+		ChangePassword updates the user's password only.
+		Any rules around password changes are handled elsewhere.
+	*/
+	ChangePassword(id string, token string, password string) error
+
+	/*
+		DeleteUser will delete a user given its ID.
+		Note that this does *not* remove any of the
+		user's histories or other data.
+	*/
+	DeleteUser(id string) error
+
 	//===============================
 	// Agents
 	//===============================
