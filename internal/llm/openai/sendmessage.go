@@ -50,8 +50,6 @@ func (ai *OpenAI) SendMessage(
 	fmt.Println(resp.Choices[0].Message.Content)
 
 	return &chat.Response{
-		Name:    message.Agent,
-		Tone:    "neutral",
 		Content: utils.FilterNamePrepend(message.Agent, resp.Choices[0].Message.Content),
 	}, nil
 }
