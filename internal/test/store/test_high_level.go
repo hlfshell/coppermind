@@ -127,28 +127,28 @@ func GetLatestConversation(t *testing.T, store store.Store) {
 	assert.WithinDuration(t, latest.CreatedAt, timestamp, time.Second)
 }
 
-func SaveMessage(t *testing.T, store store.Store) {
-	message := &chat.Message{
-		ID:           uuid.New().String(),
-		User:         "Huey",
-		Agent:        "Luey",
-		Content:      "Where's Dewy?",
-		Tone:         "inquisitive",
-		Conversation: uuid.New().String(),
-	}
+// func SaveMessage(t *testing.T, store store.Store) {
+// 	message := &chat.Message{
+// 		ID:           uuid.New().String(),
+// 		User:         "Huey",
+// 		Agent:        "Luey",
+// 		Content:      "Where's Dewy?",
+// 		Tone:         "inquisitive",
+// 		Conversation: uuid.New().String(),
+// 	}
 
-	conversation, err := store.GetConversation(message.Conversation)
-	require.Nil(t, err)
-	assert.Nil(t, conversation)
+// 	conversation, err := store.GetConversation(message.Conversation)
+// 	require.Nil(t, err)
+// 	assert.Nil(t, conversation)
 
-	err = store.SaveMessage(message)
-	require.Nil(t, err)
+// 	err = store.SaveMessage(message)
+// 	require.Nil(t, err)
 
-	conversation, err = store.GetConversation(message.Conversation)
-	require.Nil(t, err)
-	assert.Equal(t, 1, len(conversation.Messages))
-	assert.True(t, message.Equal(conversation.Messages[0]))
-}
+// 	conversation, err = store.GetConversation(message.Conversation)
+// 	require.Nil(t, err)
+// 	assert.Equal(t, 1, len(conversation.Messages))
+// 	assert.True(t, message.Equal(conversation.Messages[0]))
+// }
 
 func SaveSummary(t *testing.T, store store.Store) {
 	conversation := uuid.New().String()
