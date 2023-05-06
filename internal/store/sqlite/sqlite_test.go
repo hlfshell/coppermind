@@ -23,6 +23,10 @@ func TestMigrate(t *testing.T) {
 
 }
 
+func TestLowLevelSqlite(t *testing.T) {
+
+}
+
 func TestSqlite(t *testing.T) {
 	tests := map[string]func(*testing.T, store.Store){
 		"GetLatestConversation":               storeTest.GetLatestConversation,

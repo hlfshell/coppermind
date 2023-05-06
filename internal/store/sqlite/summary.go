@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/wissance/stringFormatter"
 )
@@ -38,6 +39,74 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 	)
 
 	return err
+}
+
+func (store *SqliteStore) GetSummary(id string) (*memory.Summary, error) {
+	query := `SELECT
+		id,
+		conversation,
+		agent,
+		user,
+		keywords,
+		summary,
+		conversation_started_at,
+		updated_at
+	FROM {0} WHERE id = ?`
+
+	query = stringFormatter.Format(query, SUMMARIES_TABLE)
+
+	rows, err := store.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	summaries, err := store.sqlToSummmaries(rows)
+	if err != nil {
+		return nil, nil
+	} else if len(summaries) == 0 {
+		return nil, nil
+	}
+
+	return summaries[0], nil
+}
+
+func (store *SqliteStore) DeleteSummary(id string) error {
+	query := `DELETE FROM {0} WHERE id = ?`
+
+	query = stringFormatter.Format(query, SUMMARIES_TABLE)
+
+	_, err := store.db.Exec(query, id)
+	return err
+}
+
+func (store *SqliteStore) ListSummaries(filter store.Filter) ([]*memory.Summary, error) {
+	queryFilters, params, err := filterToQueryParams(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT
+		id,
+		conversation,
+		agent,
+		user,
+		keywords,
+		summary,
+		conversation_started_at,
+		updated_at
+	FROM
+		{0}
+	WHERE
+		{1}
+	`
+	query = stringFormatter.Format(query, SUMMARIES_TABLE, queryFilters)
+
+	rows, err := store.db.Query(query, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	summaries, err := store.sqlToSummmaries(rows)
+	return summaries, err
 }
 
 func (store *SqliteStore) GetSummariesByAgentAndUser(agent string, user string) ([]*memory.Summary, error) {
@@ -178,6 +247,15 @@ func (store *SqliteStore) ExcludeConversationFromSummary(conversation string) er
 	query = stringFormatter.Format(query, SUMMARY_EXCLUSION_TABLE)
 
 	_, err := store.db.Exec(query, conversation, time.Now())
+	return err
+}
+
+func (store *SqliteStore) DeleteSummaryExclusion(conversation string) error {
+	query := `DELETE FROM {0} WHERE conversation = ?`
+
+	query = stringFormatter.Format(query, SUMMARY_EXCLUSION_TABLE)
+
+	_, err := store.db.Exec(query, conversation)
 	return err
 }
 
