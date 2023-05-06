@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/hlfshell/coppermind/pkg/agents"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
 )
@@ -12,6 +13,27 @@ import (
 // Each object in the scope of coppermind should have associated
 // CRDL functions w/ expected behaviour.
 type LowLevelStore interface {
+	//===============================
+	// Agents
+	//===============================
+
+	/*
+		SaveAgent will upsert save a given agent.
+	*/
+	SaveAgent(agent *agents.Agent) error
+
+	/*
+		GetAgent will return an agent given its ID
+	*/
+	GetAgent(id string) (*agents.Agent, error)
+
+	/*
+		DeleteAgent will delete an agent given its ID.
+		Note that this does *not* remove any of the
+		agent's histories or other data.
+	*/
+	DeleteAgent(id string) error
+
 	//===============================
 	// Messages
 	//===============================
