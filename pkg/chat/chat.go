@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hlfshell/coppermind/pkg/artifacts"
 )
 
 type Conversation struct {
@@ -45,8 +47,8 @@ type Message struct {
 	Conversation string    `json:"conversation,omitempty" db:"conversation"`
 	User         string    `json:"user,omitempty" db:"user"`
 	Agent        string    `json:"agent,omitempty" db:"agent"`
+	From         string    `json:"from,omitempty" db:"from"`
 	Content      string    `json:"content,omitempty" db:"content"`
-	Tone         string    `json:"tone,omitempty" db:"tone"`
 	CreatedAt    time.Time `json:"created_at,omitempty" db:"created_at"`
 }
 
@@ -60,7 +62,7 @@ func (msg *Message) Equal(other *Message) bool {
 		msg.Agent == other.Agent &&
 		msg.User == other.User &&
 		msg.Content == other.Content &&
-		msg.Tone == other.Tone &&
+		msg.From == other.From &&
 		msg.Conversation == other.Conversation &&
 		timeDifference < time.Second
 }
@@ -69,7 +71,7 @@ func (msg *Message) DatedString() string {
 	var str strings.Builder
 	str.WriteString(msg.CreatedAt.Format("Jan, 2 06 15:04"))
 	str.WriteString(" | ")
-	str.WriteString(msg.User)
+	str.WriteString(msg.From)
 	str.WriteString(" | ")
 	str.WriteString(msg.Content)
 
@@ -78,7 +80,7 @@ func (msg *Message) DatedString() string {
 
 func (msg *Message) SimpleString() string {
 	var str strings.Builder
-	str.WriteString(msg.User)
+	str.WriteString(msg.From)
 	str.WriteString(" | ")
 	str.WriteString(msg.Content)
 	return str.String()
@@ -92,17 +94,32 @@ func (msg *Message) JSON() (string, error) {
 	return string(b), nil
 }
 
+/*
+The Response struct is used to handle all the generated
+output from the LLM. For now, that's just the Content,
+and can ultimately be converted to a resulting Message.
+
+In the future, this will include types of Artifacts,
+such as generated images, search results, PDFs, sound
+files for generated voices, etc. The resulting service
+that receives the response has to then determine if it
+can and how it should utilize responses with artifacts.
+*/
 type Response struct {
-	Name    string `json:"name,omitempty"`
-	Tone    string `json:"tone,omitempty"`
-	Content string `json:"content,omitempty"`
+	Content   string               `json:"content,omitempty"`
+	Artifacts []artifacts.Artifact `json:"artifacts,omitempty"`
 }
 
-func (response *Response) ToMessage(conversation string) *Message {
+/*
+ToMessage takes a response and converts it to a message
+given other required information.
+*/
+func (response *Response) ToMessage(user string, agent string, conversation string) *Message {
 	return &Message{
 		ID:           uuid.New().String(),
-		User:         response.Name,
-		Tone:         response.Tone,
+		Agent:        agent,
+		User:         user,
+		From:         agent,
 		Content:      response.Content,
 		CreatedAt:    time.Now(),
 		Conversation: conversation,
