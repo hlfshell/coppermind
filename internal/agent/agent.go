@@ -119,7 +119,13 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = agent.db.SaveMessage(response.ToMessage(msg.Conversation))
+	err = agent.db.SaveMessage(
+		response.ToMessage(
+			msg.User,
+			agent.Name,
+			msg.Conversation,
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
