@@ -480,6 +480,32 @@ func DeleteAgent(t *testing.T, store store.LowLevelStore) {
 	assert.Nil(t, readAgent)
 }
 
+func ListAgents(t *testing.T, db store.LowLevelStore) {
+	agnts, err := db.ListAgents()
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(agnts))
+
+	numAgents := 3
+	agentsMap := map[string]*agents.Agent{}
+	for i := 0; i < numAgents; i++ {
+		agent := &agents.Agent{
+			ID:       uuid.New().String(),
+			Name:     uuid.New().String(),
+			Identity: uuid.New().String(),
+		}
+		err := db.SaveAgent(agent)
+		require.Nil(t, err)
+		agentsMap[agent.ID] = agent
+	}
+
+	agnts, err = db.ListAgents()
+	require.Nil(t, err)
+	assert.Equal(t, numAgents, len(agnts))
+	for _, agent := range agnts {
+		assert.Equal(t, agentsMap[agent.ID], agent)
+	}
+}
+
 // ===============================
 // Users
 // ===============================
