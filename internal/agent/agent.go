@@ -10,6 +10,7 @@ import (
 	"github.com/hlfshell/coppermind/internal/llm"
 	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/chat"
+	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 type Agent struct {
@@ -91,16 +92,31 @@ func (agent *Agent) SendMessage(msg *chat.Message) (*chat.Response, error) {
 	}
 
 	// Load up summaries for user/agent conversations
-	pastSummaries, err := agent.db.GetSummariesByAgentAndUser(msg.Agent, msg.User)
+	pastSummaries, err := agent.db.ListSummaries(store.Filter{
+		Attributes: []*store.FilterAttribute{
+			{
+				Attribute: "agent",
+				Value:     msg.Agent,
+				Operation: store.EQ,
+			},
+			{
+				Attribute: "user",
+				Value:     msg.User,
+				Operation: store.EQ,
+			},
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	// Find associated facts from prior conversations
-	knowledge, err := agent.db.GetKnowlegeByAgentAndUser(msg.Agent, msg.User)
-	if err != nil {
-		return nil, err
-	}
+	// knowledge, err := agent.db.GetKnowlegeByAgentAndUser(msg.Agent, msg.User)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// Placeholder for now
+	knowledge := []*memory.Knowledge{}
 
 	// Have the LLM deal with the message as expected
 	response, err := agent.llm.SendMessage(
@@ -155,9 +171,21 @@ func (agent *Agent) GenerateOrFindConversation(msg *chat.Message) (string, error
 		if err != nil {
 			return "", err
 		}
-		summary, err := agent.db.GetSummaryByConversation(conversation)
+		summaries, err := agent.db.ListSummaries(store.Filter{
+			Attributes: []*store.FilterAttribute{
+				{
+					Attribute: "conversation",
+					Value:     conversation,
+					Operation: store.EQ,
+				},
+			},
+		})
 		if err != nil {
 			return "", err
+		}
+		var summary *memory.Summary
+		if len(summaries) != 0 {
+			summary = summaries[0]
 		}
 
 		if summary == nil {

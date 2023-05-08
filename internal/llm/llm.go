@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"github.com/hlfshell/coppermind/pkg/agents"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
 )
@@ -11,7 +12,7 @@ type LLM interface {
 		generate a response per the identity of the agent.
 	*/
 	SendMessage(
-		identity string,
+		agent *agents.Agent,
 		conversation *chat.Conversation,
 		previousConversations []*memory.Summary,
 		knowledge []*memory.Knowledge,
