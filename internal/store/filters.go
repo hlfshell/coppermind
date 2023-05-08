@@ -44,6 +44,11 @@ type FilterAttribute struct {
 	Value     interface{}
 }
 
+type OrderBy struct {
+	Attribute string
+	Ascending bool
+}
+
 /*
 Filter is a generic filter that can be utilized in search
 query filters to determine how to construct a complex query
@@ -55,6 +60,7 @@ The Limit is optional - if <= 0 it is to be ignored.
 */
 type Filter struct {
 	Attributes []*FilterAttribute
+	OrderBy    OrderBy
 	Limit      int
 }
 
