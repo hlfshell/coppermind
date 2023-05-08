@@ -25,7 +25,7 @@ const (
 )
 
 /*
-FilterColumn is a generic column identifier that can
+FilterAttribute is a generic column identifier that can
 be utilized in search query filters to determine if:
 
 1 - the column is being utilized in the search
@@ -38,8 +38,8 @@ equality, greater than, less than, etc)
 This is done generically so it can be adapted to multiple
 store types
 */
-type FilterColumn struct {
-	Column    string
+type FilterAttribute struct {
+	Attribute string
 	Operation string
 	Value     interface{}
 }
@@ -54,12 +54,12 @@ Pagination is expected to occur within the store if necessary.
 The Limit is optional - if <= 0 it is to be ignored.
 */
 type Filter struct {
-	Columns []*FilterColumn
-	Limit   int
+	Attributes []*FilterAttribute
+	Limit      int
 }
 
 // Quick check to see if the filter is empty, suggestings a "select all"
 // equivalent
 func (filter *Filter) Empty() bool {
-	return len(filter.Columns) == 0
+	return len(filter.Attributes) == 0
 }

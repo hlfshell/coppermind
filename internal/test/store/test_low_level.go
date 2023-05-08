@@ -118,9 +118,9 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 	// Now we will test the user filter to get back all messages
 	// with a singular user
 	messages, err = s.ListMessages(store.Filter{
-		Columns: []*store.FilterColumn{
+		Attributes: []*store.FilterAttribute{
 			{
-				Column:    "user",
+				Attribute: "user",
 				Operation: store.EQ,
 				Value:     "Peach",
 			},
@@ -135,9 +135,9 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 
 	// Test the limit feature
 	messages, err = s.ListMessages(store.Filter{
-		Columns: []*store.FilterColumn{
+		Attributes: []*store.FilterAttribute{
 			{
-				Column:    "user",
+				Attribute: "user",
 				Operation: store.EQ,
 				Value:     "Peach",
 			},
@@ -275,14 +275,14 @@ func ListConversations(t *testing.T, db store.LowLevelStore) {
 
 	// Test limiting by user/agent
 	conversations, err = db.ListConversations(store.Filter{
-		Columns: []*store.FilterColumn{
+		Attributes: []*store.FilterAttribute{
 			{
-				Column:    "user",
+				Attribute: "user",
 				Operation: store.EQ,
 				Value:     messages[conversations[0].ID][0].User,
 			},
 			{
-				Column:    "agent",
+				Attribute: "agent",
 				Operation: store.EQ,
 				Value:     messages[conversations[0].ID][0].Agent,
 			},
@@ -416,9 +416,9 @@ func ListSummaries(t *testing.T, db store.LowLevelStore) {
 
 	// Test that we can get summaries back by user
 	summaries, err = db.ListSummaries(store.Filter{
-		Columns: []*store.FilterColumn{
+		Attributes: []*store.FilterAttribute{
 			{
-				Column:    "user",
+				Attribute: "user",
 				Operation: store.EQ,
 				Value:     summary1.User,
 			},
