@@ -31,18 +31,26 @@ func (store *SqliteStore) GetAgent(id string) (*agents.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	var agent agents.Agent
 	for rows.Next() {
+		var agent agents.Agent
 		err = rows.Scan(
 			&agent.ID,
 			&agent.Name,
 			&agent.Identity,
 		)
-		if err != nil {
-			return nil, err
-		}
+		return &agent, err
 	}
 
-	return &agent, nil
+	return nil, nil
+}
+
+func (store *SqliteStore) DeleteAgent(id string) error {
+	query := `DELETE FROM {0} WHERE id = ?`
+
+	query = stringFormatter.Format(query, AGENTS_TABLE)
+
+	_, err := store.db.Exec(query, id)
+	return err
 }

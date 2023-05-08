@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 	"sort"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/wissance/stringFormatter"
 )
 
-const messageSelectColumns = `id, conversation, user, agent, from, content, created_at`
+const messageSelectColumns = `id, conversation, user, agent, author, content, created_at`
 
 func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
 	query := `INSERT INTO {0} ({1}) VALUES(?, ?, ?, ?, ?, ?, ?)`
@@ -60,27 +61,43 @@ func (store *SqliteStore) DeleteMessage(id string) error {
 }
 
 func (store *SqliteStore) ListMessages(filter store.Filter) ([]*chat.Message, error) {
-	queryFilters, params, err := filterToQueryParams(filter)
+	query := `SELECT {columns} FROM {table} `
+	var filters string
+	var params []interface{}
+
+	if !filter.Empty() {
+		query += `WHERE {where} `
+
+		var err error
+
+		filters, params, err = filterToQueryParams(filter)
+		if err != nil {
+			return nil, err
+		}
+	}
+	query += `ORDER BY created_at ASC `
+
+	if filter.Limit > 0 {
+		query += `LIMIT {limit}`
+	}
+
+	query = stringFormatter.FormatComplex(
+		query,
+		map[string]interface{}{
+			"columns": messageSelectColumns,
+			"table":   MESSAGES_TABLE,
+			"where":   filters,
+			"limit":   filter.Limit,
+		},
+	)
+
+	fmt.Println("Query", query)
+	rows, err := store.db.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
 
-	sqlQuery := `SELECT {0}	FROM {1} WHERE {2}`
-
-	sqlQuery = stringFormatter.Format(sqlQuery, messageSelectColumns, MESSAGES_TABLE, queryFilters)
-
-	rows, err := store.db.Query(sqlQuery, params...)
-	if err != nil {
-		return nil, err
-	}
-	messages, err := store.sqlToMessages(rows)
-	if err != nil {
-		return nil, nil
-	} else if len(messages) == 0 {
-		return nil, nil
-	}
-
-	return messages, nil
+	return store.sqlToMessages(rows)
 }
 
 func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversation, error) {
@@ -118,16 +135,70 @@ func (store *SqliteStore) DeleteConversation(conversation string) error {
 }
 
 func (store *SqliteStore) ListConversations(filter store.Filter) ([]*chat.Conversation, error) {
-	queryFilters, params, err := filterToQueryParams(filter)
+	messages, err := store.ListMessages(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	query := `SELECT {0} FROM {1} WHERE {2}	ORDER BY created_at DESC LIMIT {3}`
+	// Now sort through the messages and group them by conversation. Then
+	// create a conversation object for each
+	conversationMap := map[string]*chat.Conversation{}
+	for _, msg := range messages {
+		if _, ok := conversationMap[msg.Conversation]; !ok {
+			conversationMap[msg.Conversation] = &chat.Conversation{
+				ID:        msg.Conversation,
+				User:      msg.User,
+				Agent:     msg.Agent,
+				CreatedAt: msg.CreatedAt,
+				Messages:  []*chat.Message{},
+			}
+		}
+		conversationMap[msg.Conversation].Messages = append(conversationMap[msg.Conversation].Messages, msg)
+	}
 
-	query = stringFormatter.Format(query, messageSelectColumns, MESSAGES_TABLE, queryFilters, filter.Limit)
+	// Finally return the generated conversations. Order them by the conversation
+	// Createdat time
+	conversations := []*chat.Conversation{}
+	for _, conversation := range conversationMap {
+		conversations = append(conversations, conversation)
+	}
+	return orderConversations(conversations), nil
+}
 
-	rows, err := store.db.Query(query, params...)
+func (store *SqliteStore) ListConversations2(filter store.Filter) ([]*chat.Conversation, error) {
+	// query := `SELECT {0} FROM {1} WHERE {2}	ORDER BY created_at DESC LIMIT {3}`
+	query := `SELECT {0} FROM {1} `
+
+	var rows *sql.Rows
+	var err error
+	if !filter.Empty() {
+		queryFilters, params, err := filterToQueryParams(filter)
+		if err != nil {
+			return nil, err
+		}
+
+		query += `WHERE {2} ORDER BY created_at DESC LIMIT {3}`
+		query = stringFormatter.Format(
+			query,
+			messageSelectColumns,
+			MESSAGES_TABLE,
+			queryFilters,
+			filter.Limit,
+		)
+
+		rows, err = store.db.Query(query, params...)
+	} else {
+		query += `ORDER BY created_at DESC LIMIT {2}`
+		query = stringFormatter.Format(
+			query,
+			MESSAGES_TABLE,
+			filter.Limit,
+		)
+
+		rows, err = store.db.Query(query)
+	}
+	fmt.Println("Query", query)
+
 	if err != nil {
 		return nil, err
 	}

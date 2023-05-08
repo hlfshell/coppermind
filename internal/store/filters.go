@@ -57,3 +57,9 @@ type Filter struct {
 	Columns []*FilterColumn
 	Limit   int
 }
+
+// Quick check to see if the filter is empty, suggestings a "select all"
+// equivalent
+func (filter *Filter) Empty() bool {
+	return len(filter.Columns) == 0
+}

@@ -10,6 +10,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const USERS_TABLE = "Users_V1"
+const AGENTS_TABLE = "Agents_V1"
 const MESSAGES_TABLE = "Messages_V1"
 const SUMMARIES_TABLE = "Summaries_V1"
 const SUMMARY_EXCLUSION_TABLE = "SummaryExclusion_V1"
@@ -43,6 +45,7 @@ func (store *SqliteStore) Migrate() error {
 
 	for _, entry := range entries {
 		path := filepath.Join(sqlFolderPath, entry.Name())
+
 		bytes, err := fs.ReadFile(sqlFolder, path)
 		if err != nil {
 			return err

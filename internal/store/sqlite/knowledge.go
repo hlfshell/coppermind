@@ -41,6 +41,40 @@ func (store *SqliteStore) SaveKnowledge(fact *memory.Knowledge) error {
 	return err
 }
 
+func (store *SqliteStore) GetKnowledge(id string) (*memory.Knowledge, error) {
+	query := `
+		SELECT
+			id,
+			agent,
+			user,
+			subject,
+			predicate,
+			object,
+			created_at,
+			expires_at
+		FROM
+			{0}
+		WHERE
+			id = ?
+	`
+
+	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
+
+	rows, err := store.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	knowledge, err := store.sqlToKnowledge(rows)
+	if err != nil {
+		return nil, err
+	} else if len(knowledge) == 0 {
+		return nil, nil
+	}
+
+	return knowledge[0], nil
+}
+
 func (store *SqliteStore) GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error) {
 	query := `
 		SELECT 

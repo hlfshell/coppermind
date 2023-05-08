@@ -9,22 +9,14 @@ import (
 	"github.com/wissance/stringFormatter"
 )
 
+const summaryColumns = `id, conversation, agent, user, keywords, summary, conversation_started_at, updated_at`
+
 func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
-	query := `INSERT OR REPLACE INTO {0} (
-		id,
-		conversation,
-        agent,
-        user,
-        keywords,
-        summary,
-		conversation_started_at,
-		updated_at
-	)
-	VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT OR REPLACE INTO {0} ({1}) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
 
 	summary.UpdatedAt = time.Now()
 
-	query = stringFormatter.Format(query, SUMMARIES_TABLE)
+	query = stringFormatter.Format(query, SUMMARIES_TABLE, summaryColumns)
 
 	_, err := store.db.Exec(
 		query,
@@ -42,18 +34,9 @@ func (store *SqliteStore) SaveSummary(summary *memory.Summary) error {
 }
 
 func (store *SqliteStore) GetSummary(id string) (*memory.Summary, error) {
-	query := `SELECT
-		id,
-		conversation,
-		agent,
-		user,
-		keywords,
-		summary,
-		conversation_started_at,
-		updated_at
-	FROM {0} WHERE id = ?`
+	query := `SELECT {0} FROM {1} WHERE id = ?`
 
-	query = stringFormatter.Format(query, SUMMARIES_TABLE)
+	query = stringFormatter.Format(query, summaryColumns, SUMMARIES_TABLE)
 
 	rows, err := store.db.Query(query, id)
 	if err != nil {
@@ -79,26 +62,34 @@ func (store *SqliteStore) DeleteSummary(id string) error {
 }
 
 func (store *SqliteStore) ListSummaries(filter store.Filter) ([]*memory.Summary, error) {
-	queryFilters, params, err := filterToQueryParams(filter)
-	if err != nil {
-		return nil, err
+	query := `SELECT {columns} FROM {table} `
+	var filters string
+	var params []interface{}
+	var err error
+
+	if !filter.Empty() {
+		filters, params, err = filterToQueryParams(filter)
+		if err != nil {
+			return nil, err
+		}
+		query += `WHERE {filters} `
 	}
 
-	query := `SELECT
-		id,
-		conversation,
-		agent,
-		user,
-		keywords,
-		summary,
-		conversation_started_at,
-		updated_at
-	FROM
-		{0}
-	WHERE
-		{1}
-	`
-	query = stringFormatter.Format(query, SUMMARIES_TABLE, queryFilters)
+	query += `ORDER BY conversation_started_at ASC `
+
+	if filter.Limit > 0 {
+		query += `LIMIT {limit} `
+	}
+
+	query = stringFormatter.FormatComplex(
+		query,
+		map[string]interface{}{
+			"columns": summaryColumns,
+			"table":   SUMMARIES_TABLE,
+			"filters": filters,
+			"limit":   filter.Limit,
+		},
+	)
 
 	rows, err := store.db.Query(query, params...)
 	if err != nil {

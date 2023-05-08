@@ -9,6 +9,7 @@ import (
 )
 
 type UserAuth struct {
+	ID                    string    `json:"id,omitempty" db:"id"`
 	Password              string    `json:"password,omitempty" db:"password"`
 	ResetToken            string    `json:"reset_token,omitempty" db:"reset_token"`
 	ResetTokenAttempts    int       `json:"reset_token_attempts,omitempty" db:"reset_token_attempts"`
@@ -54,7 +55,8 @@ func (userAuth *UserAuth) Equal(other *UserAuth) bool {
 		timeDifference = -timeDifference
 	}
 
-	return userAuth.Password == other.Password &&
+	return userAuth.ID == other.ID &&
+		userAuth.Password == other.Password &&
 		userAuth.ResetToken == other.ResetToken &&
 		userAuth.ResetTokenAttempts == other.ResetTokenAttempts &&
 		timeDifference < time.Second

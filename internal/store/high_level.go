@@ -2,9 +2,6 @@ package store
 
 import (
 	"time"
-
-	"github.com/hlfshell/coppermind/pkg/chat"
-	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
 // HighLevelStore interface is the heart of our system's memory
@@ -34,16 +31,6 @@ type HighLevelStore interface {
 	// Messages
 	//===============================
 
-	// SaveMessage will upsert save a given message.
-	SaveMessage(msg *chat.Message) error
-
-	/*
-		GetConversation will, given a conversation ID,
-		return all messages in that conversation sorted in oldest
-		to latest order of time
-	*/
-	GetConversation(conversation string) (*chat.Conversation, error)
-
 	/*
 		GetLatestConversation will, given the agent and user, return
 		the latest conversation and timestamp of their last
@@ -55,9 +42,6 @@ type HighLevelStore interface {
 	//===============================
 	// Summaries
 	//===============================
-
-	// SaveSummary will upsert a given summary into the store
-	SaveSummary(summary *memory.Summary) error
 
 	/*
 		GetConversationsToSummarize will find any conversation past
@@ -94,19 +78,6 @@ type HighLevelStore interface {
 	*/
 	GetConversationsToSummarize(minMessages int, minAge time.Duration, maxLength int) ([]string, error)
 
-	/*
-		GetSummaryByConversation will return the summary associated
-		with a specific summmary. If none exists, summary pointer
-		will be nil
-	*/
-	GetSummaryByConversation(conversation string) (*memory.Summary, error)
-
-	/*
-		GetsummariesByAgentAndUser will return all summaries associated
-		with a given user in oldest to latest order of time
-	*/
-	GetSummariesByAgentAndUser(agent string, user string) ([]*memory.Summary, error)
-
 	//===============================
 	// Knowledge
 	//===============================
@@ -114,42 +85,42 @@ type HighLevelStore interface {
 	/*
 		SaveKnowledge takes a given bit of knowledge and saves
 		it.
-	*/
-	SaveKnowledge(knowledge *memory.Knowledge) error
+	// */
+	// SaveKnowledge(knowledge *memory.Knowledge) error
 
-	/*
-		GetConversationsToExtractKnowledge grabs any updates
-		to any conversation it can. It has less stringent rules
-		than the summarization model since we have no need to
-		hold off on waiting to re-extract since we ask the
-		LLM to avoid duplication of knowledge.
-	*/
-	GetConversationsToExtractKnowledge() ([]string, error)
+	// /*
+	// 	GetConversationsToExtractKnowledge grabs any updates
+	// 	to any conversation it can. It has less stringent rules
+	// 	than the summarization model since we have no need to
+	// 	hold off on waiting to re-extract since we ask the
+	// 	LLM to avoid duplication of knowledge.
+	// */
+	// GetConversationsToExtractKnowledge() ([]string, error)
 
-	/*
-		SetconversationAsKnowledgeExtracted marks a given conversation
-		as having its knowledge extracted. This should prevent the
-		conversation from being scanned again unless new messages are
-		added
-	*/
-	SetConversationAsKnowledgeExtracted(conversation string) error
+	// /*
+	// 	SetconversationAsKnowledgeExtracted marks a given conversation
+	// 	as having its knowledge extracted. This should prevent the
+	// 	conversation from being scanned again unless new messages are
+	// 	added
+	// */
+	// SetConversationAsKnowledgeExtracted(conversation string) error
 
-	/*
-		GetKnowledgeByAgentAndUser will return all knowledge generated
-		from conversation between the user and agent. Expired knowledge
-		should not be included.
-	*/
-	GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error)
+	// /*
+	// 	GetKnowledgeByAgentAndUser will return all knowledge generated
+	// 	from conversation between the user and agent. Expired knowledge
+	// 	should not be included.
+	// */
+	// GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error)
 
-	/*
-		GetKnowledgeGroupedByAgentAndUser will return all knowledge across
-		all agents, but group by agent/user combination. Again, expired
-		knowledge is not returned.
-	*/
-	GetKnowledgeGroupedByAgentAndUser(agent string, user string) (map[string]map[string][]*memory.Knowledge, error)
+	// /*
+	// 	GetKnowledgeGroupedByAgentAndUser will return all knowledge across
+	// 	all agents, but group by agent/user combination. Again, expired
+	// 	knowledge is not returned.
+	// */
+	// GetKnowledgeGroupedByAgentAndUser(agent string, user string) (map[string]map[string][]*memory.Knowledge, error)
 
-	/*
-		ExpireKnowledge erases all knowledge that should have been expired
-	*/
-	ExpireKnowledge() error
+	// /*
+	// 	ExpireKnowledge erases all knowledge that should have been expired
+	// */
+	// ExpireKnowledge() error
 }

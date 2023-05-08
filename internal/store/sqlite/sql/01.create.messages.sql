@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS
 		id TEXT NOT NULL PRIMARY KEY,
 		user TEXT NOT NULL,
 		agent TEXT NOT NULL,
+		author TEXT NOT NULL,
 		content TEXT,
-		tone TEXT,
 		created_at TIMESTAMP DEFAULT NOW, 
 		conversation TEXT NOT NULL
 	);

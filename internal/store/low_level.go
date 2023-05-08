@@ -61,10 +61,14 @@ type LowLevelStore interface {
 	GenerateUserPasswordResetToken(id string) (string, error)
 
 	/*
-		ChangePassword updates the user's password only.
+		ResetPassword updates the user's password only.
 		Any rules around password changes are handled elsewhere.
+		Note that the last ResetTokenAttempts should be
+		incremented on each use of the token. If the token is
+		successfully utilized, then the token and usage tracking
+		should be cleared.
 	*/
-	ChangePassword(id string, token string, password string) error
+	ResetPassword(id string, token string, password string) error
 
 	/*
 		DeleteUser will delete a user given its ID.
