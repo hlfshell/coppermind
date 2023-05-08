@@ -38,6 +38,7 @@ func TestLowLevelSqlite(t *testing.T) {
 		"ListConversation":               storeTest.ListConversations,
 		"SaveAndGetAgent":                storeTest.SaveAndGetAgent,
 		"DeleteAgent":                    storeTest.DeleteAgent,
+		"ListAgents":                     storeTest.ListAgents,
 		"SaveAndGetSummary":              storeTest.SaveAndGetSummary,
 		"DeleteSummary":                  storeTest.DeleteSummary,
 		"ListSummaries":                  storeTest.ListSummaries,

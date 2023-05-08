@@ -98,6 +98,11 @@ type LowLevelStore interface {
 	*/
 	DeleteAgent(id string) error
 
+	/*
+		ListAgents will return all agents in the store
+	*/
+	ListAgents() ([]*agents.Agent, error)
+
 	//===============================
 	// Messages
 	//===============================

@@ -54,3 +54,32 @@ func (store *SqliteStore) DeleteAgent(id string) error {
 	_, err := store.db.Exec(query, id)
 	return err
 }
+
+func (store *SqliteStore) ListAgents() ([]*agents.Agent, error) {
+	query := `SELECT {0} FROM {1}`
+
+	query = stringFormatter.Format(query, agentSelectColumns, AGENTS_TABLE)
+
+	rows, err := store.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var foundAgents []*agents.Agent
+
+	for rows.Next() {
+		var agent agents.Agent
+		err = rows.Scan(
+			&agent.ID,
+			&agent.Name,
+			&agent.Identity,
+		)
+		if err != nil {
+			return nil, err
+		}
+		foundAgents = append(foundAgents, &agent)
+	}
+
+	return foundAgents, nil
+}
