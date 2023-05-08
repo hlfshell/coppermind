@@ -35,7 +35,7 @@ func NewService(db store.Store, llm llm.LLM, config *config.Config) *Service {
 		Agents:   NewAgentService(db),
 		Users:    NewUserService(db),
 
-		summarizationTicker: time.NewTicker(config.Summary.SummaryDaemonInterval * time.Second),
+		summarizationTicker: time.NewTicker(time.Duration(config.Summary.SummaryDaemonIntervalSeconds) * time.Second),
 		knowledgeTicker:     time.NewTicker(60 * time.Second),
 	}
 
@@ -57,7 +57,7 @@ func NewServiceFromConfig(config *config.Config) (*Service, error) {
 }
 
 func (service *Service) InitDaemons() {
-	if service.config.Summary.SummaryDaemonInterval > 0 {
+	if service.config.Summary.SummaryDaemonIntervalSeconds > 0 {
 		go func() {
 			for {
 				<-service.summarizationTicker.C

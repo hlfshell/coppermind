@@ -85,14 +85,14 @@ func (service *Service) generateOrFindConversation(msg *chat.Message) (string, e
 	conversation, timestamp, err := service.db.GetLatestConversation(msg.Agent, msg.User)
 	if err != nil {
 		return "", err
-	} else if time.Now().Add(-1 * service.config.Chat.ConversationMaintainanceDuration).Before(timestamp) {
+	} else if time.Now().Add(time.Duration(-1*service.config.Chat.ConversationMaintainanceDurationSeconds) * time.Second).Before(timestamp) {
 		// This handles the conversation existing, and it being within the maintain
 		// window of a conversation
 		return conversation, nil
 	} else if conversation == "" {
 		// This handles the situation of there is no existing conversation at all
 		conversation = uuid.New().String()
-	} else if time.Now().Add(-1 * service.config.Chat.MaxConversationIdleTime).After(timestamp) {
+	} else if time.Now().Add(time.Duration(-1*service.config.Chat.MaxConversationIdleTimeSeconds) * time.Second).After(timestamp) {
 		// We have a conversation that exists, but it's beyond the allowed time to
 		// continue the conversation; therefore it's an automatic new one
 		conversation = uuid.New().String()

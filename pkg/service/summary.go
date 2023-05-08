@@ -8,7 +8,7 @@ import (
 func (service *Service) SummaryDaemon() error {
 	conversations, err := service.db.GetConversationsToSummarize(
 		service.config.Summary.MinMessagesToSummarize,
-		service.config.Summary.MinConversationTimeToWait,
+		service.config.Summary.MinConversationTimeToWaitSeconds,
 		service.config.Summary.MinMessagesToForceSummarization,
 	)
 	if err != nil {
