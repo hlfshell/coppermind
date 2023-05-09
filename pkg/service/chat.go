@@ -163,3 +163,32 @@ func (service Service) previousSummaries(agent string, user string) ([]*memory.S
 		},
 	})
 }
+
+func (service *Service) GetRecentConversations(agent string, user string, before time.Time) ([]*chat.Conversation, error) {
+	attributes := []*store.FilterAttribute{
+		{
+			Attribute: "agent",
+			Value:     agent,
+			Operation: store.EQ,
+		},
+		{
+			Attribute: "user",
+			Value:     user,
+			Operation: store.EQ,
+		},
+	}
+	if before.IsZero() {
+		attributes = append(attributes, &store.FilterAttribute{
+			Attribute: "created_at",
+			Value:     before,
+			Operation: store.LT,
+		})
+	}
+	return service.db.ListConversations(store.Filter{
+		Attributes: attributes,
+		OrderBy: store.OrderBy{
+			Attribute: "created_at",
+			Ascending: true,
+		},
+	})
+}

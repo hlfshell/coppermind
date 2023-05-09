@@ -49,6 +49,11 @@ type OrderBy struct {
 	Ascending bool
 }
 
+// Nil checks to see if we're essentially "unset" on the order by
+func (orderBy *OrderBy) Nil() bool {
+	return orderBy.Attribute == ""
+}
+
 /*
 Filter is a generic filter that can be utilized in search
 query filters to determine how to construct a complex query

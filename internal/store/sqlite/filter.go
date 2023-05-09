@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hlfshell/coppermind/internal/store"
@@ -38,8 +39,29 @@ func filterToQueryParams(filter store.Filter) (string, []interface{}, error) {
 			query.WriteString(fmt.Sprintf("%s <= ?", fc.Attribute))
 			params = append(params, fc.Value)
 		case store.IN:
-			query.WriteString(fmt.Sprintf("%s IN (?)", fc.Attribute))
-			params = append(params, fc.Value)
+			// You can't just pass an array in as a param for sqlite
+			// like you can postgres, so we have to do some additional
+			// massaging. Thus we have to return a placeholder for
+			// each item *and* pass in each item individually
+
+			// Convert our interface{} to a []interface{} since it's
+			// assumed that's what was passed to us. We'll use reflect
+			rv := reflect.ValueOf(fc.Value)
+			if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+				return "", nil, fmt.Errorf("invalid value for IN operation - expected a slice type")
+			}
+
+			// Create our placeholder string and params array
+			placeholder := strings.Builder{}
+			for i := 0; i < rv.Len(); i++ {
+				if i != 0 {
+					placeholder.WriteString(", ")
+				}
+				placeholder.WriteString("?")
+				params = append(params, rv.Index(i).Interface())
+			}
+
+			query.WriteString(fmt.Sprintf("%s IN (%s)", fc.Attribute, placeholder.String()))
 		default:
 			return "", nil, fmt.Errorf("invalid operation %s", fc.Operation)
 		}
