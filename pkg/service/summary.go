@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/memory"
 )
@@ -8,7 +10,7 @@ import (
 func (service *Service) SummaryDaemon() error {
 	conversations, err := service.db.GetConversationsToSummarize(
 		service.config.Summary.MinMessagesToSummarize,
-		service.config.Summary.MinConversationTimeToWaitSeconds,
+		time.Duration(service.config.Summary.MinConversationTimeToWaitSeconds)*time.Second,
 		service.config.Summary.MinMessagesToForceSummarization,
 	)
 	if err != nil {
