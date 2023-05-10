@@ -43,13 +43,14 @@ func (conversation *Conversation) PastNMessages(n int) []*Message {
 }
 
 type Message struct {
-	ID           string    `json:"id,omitempty"`
-	Conversation string    `json:"conversation,omitempty" db:"conversation"`
-	User         string    `json:"user,omitempty" db:"user"`
-	Agent        string    `json:"agent,omitempty" db:"agent"`
-	From         string    `json:"from,omitempty" db:"from"`
-	Content      string    `json:"content,omitempty" db:"content"`
-	CreatedAt    time.Time `json:"created_at,omitempty" db:"created_at"`
+	ID           string     `json:"id,omitempty"`
+	Conversation string     `json:"conversation,omitempty" db:"conversation"`
+	User         string     `json:"user,omitempty" db:"user"`
+	Agent        string     `json:"agent,omitempty" db:"agent"`
+	From         string     `json:"from,omitempty" db:"from"`
+	Content      string     `json:"content,omitempty" db:"content"`
+	Artifacts    []Artifact `json:"artifacts,omitempty"`
+	CreatedAt    time.Time  `json:"created_at,omitempty" db:"created_at"`
 }
 
 func (msg *Message) Equal(other *Message) bool {
