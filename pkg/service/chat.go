@@ -177,7 +177,7 @@ func (service *Service) GetRecentConversations(agent string, user string, before
 			Operation: store.EQ,
 		},
 	}
-	if before.IsZero() {
+	if !before.IsZero() {
 		attributes = append(attributes, &store.FilterAttribute{
 			Attribute: "created_at",
 			Value:     before,
