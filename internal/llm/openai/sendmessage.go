@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/prompts"
 	"github.com/hlfshell/coppermind/internal/utils"
+	"github.com/hlfshell/coppermind/pkg/agents"
+	"github.com/hlfshell/coppermind/pkg/artifacts"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/sashabaranov/go-openai"
@@ -14,15 +18,15 @@ import (
 )
 
 func (ai *OpenAI) SendMessage(
-	identity string,
+	agent *agents.Agent,
 	conversation *chat.Conversation,
 	previousConversations []*memory.Summary,
 	knowledge []*memory.Knowledge,
 	message *chat.Message,
-) (*chat.Response, error) {
+) (*chat.Message, error) {
 	data, err := ai.prepareChatMessage(
 		ai.chatPrompt,
-		identity,
+		agent.Identity,
 		conversation.Messages,
 		previousConversations,
 		knowledge,
@@ -49,8 +53,15 @@ func (ai *OpenAI) SendMessage(
 	fmt.Println("Token usage", resp.Usage)
 	fmt.Println(resp.Choices[0].Message.Content)
 
-	return &chat.Response{
-		Content: utils.FilterNamePrepend(message.Agent, resp.Choices[0].Message.Content),
+	return &chat.Message{
+		ID:           uuid.New().String(),
+		Agent:        agent.Name,
+		User:         message.User,
+		From:         agent.ID,
+		Conversation: message.Conversation,
+		CreatedAt:    time.Now(),
+		Content:      utils.FilterNamePrepend(agent.Name, resp.Choices[0].Message.Content),
+		Artifacts:    []*artifacts.ArtifactData{},
 	}, nil
 }
 

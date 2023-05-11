@@ -17,7 +17,7 @@ type LLM interface {
 		previousConversations []*memory.Summary,
 		knowledge []*memory.Knowledge,
 		message *chat.Message,
-	) (*chat.Response, error)
+	) (*chat.Message, error)
 
 	/*
 		ConversationContinuance attempts to determine whether or not

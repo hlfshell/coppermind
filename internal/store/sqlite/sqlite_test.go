@@ -10,7 +10,6 @@ import (
 
 func createSqlLiteStore() (*SqliteStore, error) {
 	store, err := NewSqliteStore(":memory:")
-	// store, err := NewSqliteStore("/home/keith/projects/coppermind/test.db")
 	if err != nil {
 		return nil, err
 	}

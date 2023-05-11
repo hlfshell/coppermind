@@ -43,20 +43,43 @@ func (conversation *Conversation) PastNMessages(n int) []*Message {
 }
 
 type Message struct {
-	ID           string     `json:"id,omitempty"`
-	Conversation string     `json:"conversation,omitempty" db:"conversation"`
-	User         string     `json:"user,omitempty" db:"user"`
-	Agent        string     `json:"agent,omitempty" db:"agent"`
-	From         string     `json:"from,omitempty" db:"from"`
-	Content      string     `json:"content,omitempty" db:"content"`
-	Artifacts    []Artifact `json:"artifacts,omitempty"`
-	CreatedAt    time.Time  `json:"created_at,omitempty" db:"created_at"`
+	ID           string                    `json:"id,omitempty"`
+	Conversation string                    `json:"conversation,omitempty" db:"conversation"`
+	User         string                    `json:"user,omitempty" db:"user"`
+	Agent        string                    `json:"agent,omitempty" db:"agent"`
+	From         string                    `json:"from,omitempty" db:"from"`
+	Content      string                    `json:"content,omitempty" db:"content"`
+	Artifacts    []*artifacts.ArtifactData `json:"artifacts,omitempty"`
+	CreatedAt    time.Time                 `json:"created_at,omitempty" db:"created_at"`
 }
 
 func (msg *Message) Equal(other *Message) bool {
 	timeDifference := msg.CreatedAt.Sub(other.CreatedAt)
 	if timeDifference < 0 {
 		timeDifference = -timeDifference
+	}
+
+	// Check the artifacts. They may be in a different order,
+	// so we'll have to do some additional legwork. If we
+	// fail at any point we can safely say these do not equal
+	// onanother. If we get past this, we can continue to check
+	// the message itself.
+	if len(msg.Artifacts) != len(other.Artifacts) {
+		return false
+	}
+	artifactCheck := map[string]*artifacts.ArtifactData{}
+	for _, artifact := range msg.Artifacts {
+		artifactCheck[artifact.ID] = artifact
+	}
+	for _, artifact := range other.Artifacts {
+		if _, ok := artifactCheck[artifact.ID]; ok {
+			equal := artifactCheck[artifact.ID].Equal(artifact)
+			if !equal {
+				return false
+			}
+		} else {
+			return false
+		}
 	}
 
 	return msg.ID == other.ID &&
@@ -107,8 +130,8 @@ that receives the response has to then determine if it
 can and how it should utilize responses with artifacts.
 */
 type Response struct {
-	Content   string               `json:"content,omitempty"`
-	Artifacts []artifacts.Artifact `json:"artifacts,omitempty"`
+	Content   string                   `json:"content,omitempty"`
+	Artifacts []artifacts.ArtifactData `json:"artifacts,omitempty"`
 }
 
 /*

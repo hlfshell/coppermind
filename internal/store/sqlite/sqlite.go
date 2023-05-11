@@ -13,6 +13,7 @@ import (
 const USERS_TABLE = "Users_V1"
 const AGENTS_TABLE = "Agents_V1"
 const MESSAGES_TABLE = "Messages_V1"
+const ARTIFACTS_TABLE = "Artifacts_V1"
 const SUMMARIES_TABLE = "Summaries_V1"
 const SUMMARY_EXCLUSION_TABLE = "SummaryExclusion_V1"
 const KNOWLEDGE_TABLE = "Knowledge_V1"

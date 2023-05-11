@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/hlfshell/coppermind/internal/store"
+	"github.com/hlfshell/coppermind/pkg/artifacts"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/wissance/stringFormatter"
 )
 
 const messageSelectColumns = `id, conversation, user, agent, author, content, created_at`
+const artifactDataSelectColumns = `id, message, type, data, created_at`
 
 func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
 	query := `INSERT INTO {0} ({1}) VALUES(?, ?, ?, ?, ?, ?, ?)`
@@ -28,7 +30,48 @@ func (store *SqliteStore) SaveMessage(msg *chat.Message) error {
 		msg.Content,
 		msg.CreatedAt,
 	)
+	if err != nil {
+		return err
+	}
 
+	// Finally save any artifact data included
+	return store.saveArtifactData(msg.Artifacts)
+}
+
+func (store *SqliteStore) saveArtifactData(data []*artifacts.ArtifactData) error {
+	// If we have no data, we can just return
+	if len(data) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO {0} ({1}) VALUES {2}`
+
+	// We need a (?, ?, ?, ?, ?) for each artifact data, with a comma
+	// between each set of values
+	placeholders := ""
+	for i := 0; i < len(data); i++ {
+		if i > 0 {
+			placeholders += ", "
+		}
+		placeholders += "(?, ?, ?, ?, ?)"
+	}
+
+	query = stringFormatter.Format(query, ARTIFACTS_TABLE, artifactDataSelectColumns, placeholders)
+	fmt.Println(">>", query, data[0].ID, data[0].Message)
+	// Now we need to flatten the data into a single array of values
+	values := []interface{}{}
+	for _, artifact := range data {
+		values = append(
+			values,
+			artifact.ID,
+			artifact.Message,
+			artifact.Type,
+			artifact.Data,
+			artifact.CreatedAt,
+		)
+	}
+
+	_, err := store.db.Exec(query, values...)
 	return err
 }
 
@@ -48,7 +91,51 @@ func (store *SqliteStore) GetMessage(id string) (*chat.Message, error) {
 		return nil, nil
 	}
 
+	messages, err = store.populateArtifacts(messages)
+	if err != nil {
+		return nil, err
+	}
+
 	return messages[0], nil
+}
+
+func (store *SqliteStore) populateArtifacts(messages []*chat.Message) ([]*chat.Message, error) {
+	messageIndexes := map[string]int{}
+	messageIds := []interface{}{}
+	paramString := "("
+	for i, msg := range messages {
+		if i > 0 {
+			paramString += ", "
+		}
+		messageIds = append(messageIds, msg.ID)
+		paramString += "?"
+		messageIndexes[msg.ID] = i
+	}
+	paramString += ")"
+
+	query := `SELECT {0} FROM {1} WHERE message IN {2}`
+	query = stringFormatter.Format(
+		query,
+		artifactDataSelectColumns,
+		ARTIFACTS_TABLE,
+		paramString,
+	)
+	rows, err := store.db.Query(query, messageIds...)
+	if err != nil {
+		return nil, err
+	}
+	artifactData, err := store.sqlToArtifacts(rows)
+	if err != nil {
+		return nil, err
+	}
+	for index, artifact := range artifactData {
+		messages[messageIndexes[artifact.Message]].Artifacts = append(
+			messages[messageIndexes[artifact.Message]].Artifacts,
+			&artifactData[index],
+		)
+	}
+
+	return messages, nil
 }
 
 func (store *SqliteStore) DeleteMessage(id string) error {
@@ -57,6 +144,13 @@ func (store *SqliteStore) DeleteMessage(id string) error {
 	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
 	_, err := store.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	query = `DELETE FROM {0} WHERE message = ?`
+	query = stringFormatter.Format(query, ARTIFACTS_TABLE)
+	_, err = store.db.Exec(query, id)
 	return err
 }
 
@@ -91,13 +185,17 @@ func (store *SqliteStore) ListMessages(filter store.Filter) ([]*chat.Message, er
 		},
 	)
 
-	fmt.Println("Query", query)
 	rows, err := store.db.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
 
-	return store.sqlToMessages(rows)
+	messages, err := store.sqlToMessages(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return store.populateArtifacts(messages)
 }
 
 func (store *SqliteStore) GetConversation(conversation string) (*chat.Conversation, error) {
@@ -196,7 +294,7 @@ func (db *SqliteStore) ListConversations(filter store.Filter) ([]*chat.Conversat
 			"orderBy": orderBy,
 		},
 	)
-	fmt.Println("query", query)
+
 	rows, err := db.db.Query(query, params...)
 	if err != nil {
 		return nil, err
@@ -378,4 +476,32 @@ func (store *SqliteStore) sqlToMessages(rows *sql.Rows) ([]*chat.Message, error)
 	}
 
 	return messages, nil
+}
+
+func (store *SqliteStore) sqlToArtifacts(rows *sql.Rows) ([]artifacts.ArtifactData, error) {
+	defer rows.Close()
+
+	artifactData := []artifacts.ArtifactData{}
+
+	for rows.Next() {
+		var data artifacts.ArtifactData
+		var datetime string
+		err := rows.Scan(
+			&data.ID,
+			&data.Message,
+			&data.Type,
+			&data.Data,
+			&datetime,
+		)
+		if err != nil {
+			return nil, err
+		}
+		createdAt, err := store.sqlTimestampToTime(datetime)
+		if err != nil {
+			return nil, err
+		}
+		data.CreatedAt = createdAt
+		artifactData = append(artifactData, data)
+	}
+	return artifactData, nil
 }

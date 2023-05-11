@@ -10,7 +10,7 @@ import (
 	"github.com/hlfshell/coppermind/pkg/memory"
 )
 
-func (service *Service) SendMessage(msg *chat.Message) (*chat.Response, error) {
+func (service *Service) SendMessage(msg *chat.Message) (*chat.Message, error) {
 	// Get the agent for the message
 	agent, err := service.db.GetAgent(msg.Agent)
 	if err != nil {
@@ -62,17 +62,6 @@ func (service *Service) SendMessage(msg *chat.Message) (*chat.Response, error) {
 		pastSummaries,
 		knowledge,
 		msg,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.db.SaveMessage(
-		response.ToMessage(
-			msg.User,
-			agent.ID,
-			msg.Conversation,
-		),
 	)
 	if err != nil {
 		return nil, err
