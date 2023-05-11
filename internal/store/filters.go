@@ -1,19 +1,18 @@
 package store
 
 /*
-	These are the expected operations for the filters:
-	1. = - equality
-	2. != - not equal
-	3. > - greater than
-	4. < - less than
-	5. >= - greater than or equal
-	6. <= - less than or equal
-	7. in - in a list of values
+These are the expected operations for the filters:
+1. = - equality
+2. != - not equal
+3. > - greater than
+4. < - less than
+5. >= - greater than or equal
+6. <= - less than or equal
+7. in - in a list of values
 
-	It is expected that it is supported in some manner
-	for all stores.
+It is expected that it is supported in some manner
+for all stores.
 */
-
 const (
 	EQ  = "="
 	NEQ = "!="
