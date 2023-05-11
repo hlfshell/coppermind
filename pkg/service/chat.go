@@ -172,6 +172,7 @@ func (request *GetRecentConversationsRequest) Valid() error {
 	if request.Time.IsZero() {
 		return fmt.Errorf("time must be set")
 	}
+	return nil
 }
 
 func (request *GetRecentConversationsRequest) GetFilters() ([]*store.FilterAttribute, error) {
