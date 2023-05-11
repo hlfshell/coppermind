@@ -183,17 +183,17 @@ func (request *GetRecentConversationsRequest) GetFilters() ([]*store.FilterAttri
 	attributes := []*store.FilterAttribute{
 		{
 			Attribute: "agent",
-			Value:     agent,
+			Value:     request.Agent,
 			Operation: store.EQ,
 		},
 		{
 			Attribute: "user",
-			Value:     user,
+			Value:     request.User,
 			Operation: store.EQ,
 		},
 	}
 
-	var operation store.Operation
+	var operation string
 	if request.Before {
 		operation = store.LTE
 	} else {
