@@ -153,7 +153,33 @@ func (service Service) previousSummaries(agent string, user string) ([]*memory.S
 	})
 }
 
-func (service *Service) GetRecentConversations(agent string, user string, before time.Time) ([]*chat.Conversation, error) {
+type GetRecentConversationsRequest struct {
+	Agent      string
+	User       string
+	Time       time.Time
+	Before     bool
+	Limit      int
+	MostRecent bool
+}
+
+func (request *GetRecentConversationsRequest) Valid() error {
+	if request.Agent == "" {
+		return fmt.Errorf("agent cannot be empty")
+	}
+	if request.User == "" {
+		return fmt.Errorf("user cannot be empty")
+	}
+	if request.Time.IsZero() {
+		return fmt.Errorf("time must be set")
+	}
+}
+
+func (request *GetRecentConversationsRequest) GetFilters() ([]*store.FilterAttribute, error) {
+	err := request.Valid()
+	if err != nil {
+		return nil, err
+	}
+
 	attributes := []*store.FilterAttribute{
 		{
 			Attribute: "agent",
@@ -166,13 +192,36 @@ func (service *Service) GetRecentConversations(agent string, user string, before
 			Operation: store.EQ,
 		},
 	}
-	if !before.IsZero() {
-		attributes = append(attributes, &store.FilterAttribute{
-			Attribute: "created_at",
-			Value:     before,
-			Operation: store.LT,
-		})
+
+	var operation store.Operation
+	if request.Before {
+		operation = store.LTE
+	} else {
+		operation = store.GTE
 	}
+
+	attributes = append(
+		attributes,
+		&store.FilterAttribute{
+			Attribute: "created_at",
+			Value:     request.Time,
+			Operation: operation,
+		},
+	)
+
+	return attributes, nil
+}
+
+func (service *Service) GetRecentConversations(request *GetRecentConversationsRequest) ([]*chat.Conversation, error) {
+	if request == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	attributes, err := request.GetFilters()
+	if err != nil {
+		return nil, err
+	}
+
 	return service.db.ListConversations(store.Filter{
 		Attributes: attributes,
 		OrderBy: store.OrderBy{
