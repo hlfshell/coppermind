@@ -1,12 +1,14 @@
 package store
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/agents"
+	"github.com/hlfshell/coppermind/pkg/artifacts"
 	"github.com/hlfshell/coppermind/pkg/chat"
 	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/hlfshell/coppermind/pkg/users"
@@ -19,12 +21,29 @@ import (
 // ===============================
 
 func SaveAndGetMessage(t *testing.T, store store.LowLevelStore) {
+	id := uuid.New().String()
 	message := &chat.Message{
-		ID:           uuid.New().String(),
-		User:         "Huey",
-		Agent:        "Luey",
-		From:         "Huey",
-		Content:      "Where's Dewy?",
+		ID:      id,
+		User:    "Huey",
+		Agent:   "Luey",
+		From:    "Huey",
+		Content: "Where's Dewy?",
+		Artifacts: []*artifacts.ArtifactData{
+			{
+				ID:        uuid.New().String(),
+				Message:   id,
+				Type:      "image",
+				CreatedAt: time.Now(),
+				Data:      json.RawMessage(`{"url": "https://www.picturesofdogs.com/img1"}`),
+			},
+			{
+				ID:        uuid.New().String(),
+				Message:   id,
+				Type:      "voice",
+				CreatedAt: time.Now(),
+				Data:      []byte{0, 1, 2},
+			},
+		},
 		Conversation: uuid.New().String(),
 	}
 
@@ -42,13 +61,30 @@ func SaveAndGetMessage(t *testing.T, store store.LowLevelStore) {
 }
 
 func DeleteMessage(t *testing.T, store store.LowLevelStore) {
+	id := uuid.New().String()
 	message := &chat.Message{
-		ID:           uuid.New().String(),
+		ID:           id,
 		User:         "Yoshi",
 		Agent:        "Mario",
 		From:         "Yoshi",
 		Content:      "Need a ride?",
 		Conversation: uuid.New().String(),
+		Artifacts: []*artifacts.ArtifactData{
+			{
+				ID:        uuid.New().String(),
+				Message:   id,
+				Type:      "image",
+				CreatedAt: time.Now(),
+				Data:      json.RawMessage(`{"url": "https://www.picturesofdogs.com/img1"}`),
+			},
+			{
+				ID:        uuid.New().String(),
+				Message:   id,
+				Type:      "voice",
+				CreatedAt: time.Now(),
+				Data:      []byte{0, 1, 2},
+			},
+		},
 	}
 
 	msg, err := store.GetMessage(message.ID)
@@ -74,14 +110,24 @@ func DeleteMessage(t *testing.T, store store.LowLevelStore) {
 func ListMessages(t *testing.T, s store.LowLevelStore) {
 	// Create a number of messages for us to query back
 	// and test the list feature with
+	msg1Id := uuid.New().String()
 	msg1 := &chat.Message{
-		ID:           uuid.New().String(),
+		ID:           msg1Id,
 		User:         "Peach",
 		Agent:        "Bowser",
 		From:         "Peach",
 		Content:      "I need some space...",
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now().Add(-5 * time.Minute),
+		Artifacts: []*artifacts.ArtifactData{
+			{
+				ID:        uuid.New().String(),
+				Message:   msg1Id,
+				Type:      "image",
+				CreatedAt: time.Now(),
+				Data:      json.RawMessage(`{"url": "https://www.picturesofdogs.com/img1"}`),
+			},
+		},
 	}
 	msg2 := &chat.Message{
 		ID:           uuid.New().String(),
@@ -92,14 +138,24 @@ func ListMessages(t *testing.T, s store.LowLevelStore) {
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now().Add(-24 * time.Hour),
 	}
+	msg3Id := uuid.New().String()
 	msg3 := &chat.Message{
-		ID:           uuid.New().String(),
+		ID:           msg3Id,
 		User:         "Peach",
 		Agent:        "Mario",
 		From:         "Peach",
 		Content:      "I just headed over to another castle...",
 		Conversation: uuid.New().String(),
 		CreatedAt:    time.Now(),
+		Artifacts: []*artifacts.ArtifactData{
+			{
+				ID:        uuid.New().String(),
+				Message:   msg3Id,
+				Type:      "voice",
+				CreatedAt: time.Now(),
+				Data:      []byte{0, 1, 2},
+			},
+		},
 	}
 
 	err := s.SaveMessage(msg1)
