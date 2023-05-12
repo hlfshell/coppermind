@@ -1,5 +1,7 @@
 package store
 
+import "fmt"
+
 /*
 These are the expected operations for the filters:
 1. = - equality
@@ -41,6 +43,10 @@ type FilterAttribute struct {
 	Attribute string
 	Operation string
 	Value     interface{}
+}
+
+func (attribute *FilterAttribute) String() string {
+	return fmt.Sprintf("%s %s %v", attribute.Attribute, attribute.Operation, attribute.Value)
 }
 
 type OrderBy struct {
