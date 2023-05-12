@@ -23,6 +23,7 @@ func TestSendMessage(t *testing.T) {
 	service, store, err := createMockService(llm)
 	require.Nil(t, err)
 	require.NotNil(t, service)
+	require.NotNil(t, store)
 
 	returnMsg := &chat.Message{
 		ID:        uuid.New().String(),

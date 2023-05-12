@@ -56,7 +56,7 @@ func NewServiceFromConfig(config *config.Config) (*Service, error) {
 	return NewService(db, llm, config), nil
 }
 
-func (service *Service) InitDaemons() {
+func (service *Service) LaunchDaemons() {
 	if service.config.Summary.SummaryDaemonIntervalSeconds > 0 {
 		go func() {
 			for {
