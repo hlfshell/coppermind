@@ -5,6 +5,11 @@ type Config struct {
 	Summary SummaryConfig `json:"summary"`
 }
 
+var DefaultConfig Config = Config{
+	Chat:    DefaultChatConfig,
+	Summary: DefaultSummaryConfig,
+}
+
 type ChatConfig struct {
 	ConversationMaintainanceDurationSeconds int `json:"conversation_maintainance_duration_seconds"`
 	MaxConversationIdleTimeSeconds          int `json:"max_conversation_idle_time_seconds"`
