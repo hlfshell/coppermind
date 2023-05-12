@@ -1,5 +1,7 @@
 # coppermind 🤖💬🧠
 
+`coppermind` is a standalone service that utilizes powerful LLMs to create capable conversational agents. It can be ran from a single exectuable as astandalone service for these agents, or embedded into your own projects.
+
 This is a FIRST DRAFT project and is a WIP.
 
 Coppermind is an additional "brain" that sits on top of an instruction based LLM model, programmed in golang.
