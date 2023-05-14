@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hlfshell/coppermind/internal/store"
@@ -12,11 +14,26 @@ import (
 const summaryColumns = `id, conversation, agent, userId, keywords, summary, conversation_started_at, updated_at`
 
 func (store *PostgresStore) SaveSummary(summary *memory.Summary) error {
-	query := `INSERT OR REPLACE INTO {0} ({1}) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO {0} ({1}) VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (id) DO UPDATE SET {2}`
 
 	summary.UpdatedAt = time.Now()
 
-	query = stringFormatter.Format(query, SUMMARIES_TABLE, summaryColumns)
+	// We need to build the update placeholders for each param
+	summaryColumnsSplit := strings.Split(summaryColumns, ", ")
+	// Drop the id column
+	summaryColumnsSplit = summaryColumnsSplit[1:]
+	updatePlaceholder := strings.Builder{}
+	for i, column := range summaryColumnsSplit {
+		if i > 0 {
+			updatePlaceholder.WriteString(", ")
+		}
+		updatePlaceholder.WriteString(column)
+		// It's + 2 as we dropped the id column
+		updatePlaceholder.WriteString(fmt.Sprintf(" = $%d", i+2))
+	}
+
+	query = stringFormatter.Format(query, SUMMARIES_TABLE, summaryColumns, updatePlaceholder.String())
 
 	_, err := store.db.Exec(
 		query,
@@ -34,7 +51,7 @@ func (store *PostgresStore) SaveSummary(summary *memory.Summary) error {
 }
 
 func (store *PostgresStore) GetSummary(id string) (*memory.Summary, error) {
-	query := `SELECT {0} FROM {1} WHERE id = ?`
+	query := `SELECT {0} FROM {1} WHERE id = $1`
 
 	query = stringFormatter.Format(query, summaryColumns, SUMMARIES_TABLE)
 
@@ -53,7 +70,7 @@ func (store *PostgresStore) GetSummary(id string) (*memory.Summary, error) {
 }
 
 func (store *PostgresStore) DeleteSummary(id string) error {
-	query := `DELETE FROM {0} WHERE id = ?`
+	query := `DELETE FROM {0} WHERE id = $1`
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
 
@@ -91,6 +108,8 @@ func (store *PostgresStore) ListSummaries(filter store.Filter) ([]*memory.Summar
 		},
 	)
 
+	fmt.Println("list query", len(params), query)
+	fmt.Println(params)
 	rows, err := store.db.Query(query, params...)
 	if err != nil {
 		return nil, err
@@ -110,7 +129,7 @@ func (store *PostgresStore) GetSummariesByAgentAndUser(agent string, user string
 		summary,
 		conversation_started_at,
 		updated_at
-	FROM {0} WHERE agent = ? AND user = ?
+	FROM {0} WHERE agent = $1 AND user = $2
 	`
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
@@ -138,7 +157,7 @@ func (store *PostgresStore) GetSummaryByConversation(conversation string) (*memo
 		summary,
 		conversation_started_at,
 		updated_at
-	FROM {0} WHERE conversation = ?`
+	FROM {0} WHERE conversation = $1`
 
 	query = stringFormatter.Format(query, SUMMARIES_TABLE)
 
@@ -178,7 +197,7 @@ func (store *PostgresStore) GetConversationsToSummarize(minMessages int, minAge 
 			WHERE
 				exclusion.conversation IS NULL
 			GROUP BY
-				messages.conversation
+				messages.conversation, summaries.id
 		),
 		messages_since_summary AS (
 			SELECT
@@ -191,6 +210,8 @@ func (store *PostgresStore) GetConversationsToSummarize(minMessages int, minAge 
 					messages.created_at > target_conversations.summary_updated_at
 			WHERE
 				target_conversations.summary IS NOT NULL
+			GROUP BY
+				target_conversations.conversationId
 		)
 		SELECT
 			target_conversations.conversationId
@@ -201,16 +222,17 @@ func (store *PostgresStore) GetConversationsToSummarize(minMessages int, minAge 
 		WHERE
 			(summary IS NULL OR latest_message > summary_updated_at) AND
 			(
-				(latest_message <= ? AND messages_count >= ?) OR
-				(messages_since_summary.messages_since_update >= ?) OR
-				(summary IS NULL AND messages_count >= ?)
+				(latest_message <= $1 AND messages_count >= $2) OR
+				(messages_since_summary.messages_since_update >= $3) OR
+				(summary IS NULL AND messages_count >= $3)
 			)
 	`
 
 	query = stringFormatter.Format(query, MESSAGES_TABLE, SUMMARIES_TABLE, SUMMARY_EXCLUSION_TABLE)
-
-	rows, err := store.db.Query(query, ageTime, minMessages, maxMessages, maxMessages)
+	fmt.Println("query", query)
+	rows, err := store.db.Query(query, ageTime, minMessages, maxMessages)
 	if err != nil {
+		fmt.Println("err on query", err)
 		return nil, err
 	}
 
@@ -232,7 +254,7 @@ func (store *PostgresStore) ExcludeConversationFromSummary(conversation string) 
 		INSERT INTO {0} (
 			conversation,
 			created_at
-		) VALUES(?, ?)
+		) VALUES($1, $2)
 	`
 
 	query = stringFormatter.Format(query, SUMMARY_EXCLUSION_TABLE)
@@ -242,7 +264,7 @@ func (store *PostgresStore) ExcludeConversationFromSummary(conversation string) 
 }
 
 func (store *PostgresStore) DeleteSummaryExclusion(conversation string) error {
-	query := `DELETE FROM {0} WHERE conversation = ?`
+	query := `DELETE FROM {0} WHERE conversation = $1`
 
 	query = stringFormatter.Format(query, SUMMARY_EXCLUSION_TABLE)
 
@@ -258,8 +280,6 @@ func (store *PostgresStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, 
 	for rows.Next() {
 		var summary memory.Summary
 		var keywords string
-		var updatedTime string
-		var conversationStartTime string
 
 		err := rows.Scan(
 			&summary.ID,
@@ -268,24 +288,12 @@ func (store *PostgresStore) sqlToSummmaries(rows *sql.Rows) ([]*memory.Summary, 
 			&summary.User,
 			&keywords,
 			&summary.Summary,
-			&conversationStartTime,
-			&updatedTime,
+			&summary.ConversationStartedAt,
+			&summary.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		timestamp, err := store.sqlTimestampToTime(updatedTime)
-		if err != nil {
-			return nil, err
-		}
-		summary.UpdatedAt = timestamp
-
-		timestamp, err = store.sqlTimestampToTime(conversationStartTime)
-		if err != nil {
-			return nil, err
-		}
-		summary.ConversationStartedAt = timestamp
-
 		summary.StringToKeywords(keywords)
 
 		summaries = append(summaries, &summary)

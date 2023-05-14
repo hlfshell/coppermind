@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS
         message TEXT NOT NULL,
         type TEXT NOT NULL,
         data BYTEA,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     );
 
 CREATE INDEX IF NOT EXISTS artifacts_id_v1 ON Artifacts_V1(id);

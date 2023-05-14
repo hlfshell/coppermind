@@ -199,47 +199,72 @@ func createPostgresStore(t *testing.T) (*PostgresStore, *postgresContainer, erro
 	return store, container, nil
 }
 
-func TestPostgres(t *testing.T) {
-	store, container, err := createPostgresStore(t)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer container.close()
+// func TestPostgres(t *testing.T) {
+// 	store, container, err := createPostgresStore(t)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	defer container.close()
 
-	err = store.Migrate()
-	require.Nil(t, err)
-}
+// 	err = store.Migrate()
+// 	require.Nil(t, err)
+// }
 
 func TestLowLevelSqlite(t *testing.T) {
 	tests := map[string]func(t *testing.T, store store.LowLevelStore){
-		// "SaveAndGetUser":                 storeTest.SaveAndCreatetUser,
-		// "GetUserAuth":                    storeTest.GetUserAuth,
-		// "GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
-		// "ResetPassword":                  storeTest.ResetPassword,
-		// "DeleteUser": storeTest.DeleteUser,
-		// "SaveAndGetMessage": storeTest.SaveAndGetMessage,
-		"DeleteMessage": storeTest.DeleteMessage,
-		// "ListMessages":      storeTest.ListMessages,
-		// "GetConversation":                storeTest.GetAndDeleteConversation,
-		// "ListConversation":               storeTest.ListConversations,
-		// "SaveAndGetAgent":                storeTest.SaveAndGetAgent,
-		// "DeleteAgent":                    storeTest.DeleteAgent,
-		// "ListAgents":                     storeTest.ListAgents,
-		// "SaveAndGetSummary":              storeTest.SaveAndGetSummary,
-		// "DeleteSummary":                  storeTest.DeleteSummary,
-		// "ListSummaries":                  storeTest.ListSummaries,
+		"SaveAndGetUser":                 storeTest.SaveAndCreatetUser,
+		"GetUserAuth":                    storeTest.GetUserAuth,
+		"GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
+		"ResetPassword":                  storeTest.ResetPassword,
+		"DeleteUser":                     storeTest.DeleteUser,
+		"SaveAndGetMessage":              storeTest.SaveAndGetMessage,
+		"DeleteMessage":                  storeTest.DeleteMessage,
+		"ListMessages":                   storeTest.ListMessages,
+		"GetConversation":                storeTest.GetAndDeleteConversation,
+		"ListConversation":               storeTest.ListConversations,
+		"SaveAndGetAgent":                storeTest.SaveAndGetAgent,
+		"DeleteAgent":                    storeTest.DeleteAgent,
+		"ListAgents":                     storeTest.ListAgents,
+		"SaveAndGetSummary":              storeTest.SaveAndGetSummary,
+		"DeleteSummary":                  storeTest.DeleteSummary,
+		"ListSummaries":                  storeTest.ListSummaries,
 	}
 
-	for name, test := range tests {
+	for name, _ := range tests {
 		t.Run("TestLowLevelPostgres"+name, func(t *testing.T) {
-			store, _, err := createPostgresStore(t)
+			t.Parallel()
+			store, container, err := createPostgresStore(t)
 			require.Nil(t, err)
-			// defer container.close()
+			defer container.close()
 
 			err = store.Migrate()
 			require.Nil(t, err)
 
-			test(t, store)
+			tests[name](t, store)
+		})
+	}
+}
+
+func TestHighLevelPostgres(t *testing.T) {
+	tests := map[string]func(t *testing.T, store store.Store){
+		"GetLatestConversation":          storeTest.GetLatestConversation,
+		"GetConversationsToSummarize":    storeTest.GetConversationsToSummarize,
+		"ExcludeConversationFromSummary": storeTest.ExcludeConversationFromSummary,
+		// "ExpireKnowledge":                     storeTest.ExpireKnowledge,
+		// "SetConversationAsKnowledgeExtracted": storeTest.SetConversationAsKnowledgeExtracted,
+	}
+
+	for name, _ := range tests {
+		t.Run("TestSqlite"+name, func(t *testing.T) {
+			t.Parallel()
+			store, container, err := createPostgresStore(t)
+			require.Nil(t, err)
+			defer container.close()
+
+			err = store.Migrate()
+			require.Nil(t, err)
+
+			tests[name](t, store)
 		})
 	}
 }

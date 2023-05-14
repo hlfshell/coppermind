@@ -11,7 +11,14 @@ import (
 func filterToQueryParams(filter store.Filter) (string, []interface{}, error) {
 	query := strings.Builder{}
 	params := []interface{}{}
+	placeholderCount := 1
+
 	for i, fc := range filter.Attributes {
+		// If the column is user, replace it with userId
+		if fc.Attribute == "user" {
+			fc.Attribute = "userId"
+		}
+
 		// Add an AND if this is not the first column
 		// being added
 		if i != 0 {
@@ -21,22 +28,28 @@ func filterToQueryParams(filter store.Filter) (string, []interface{}, error) {
 		// Switch state for the operations allowed
 		switch fc.Operation {
 		case store.EQ:
-			query.WriteString(fmt.Sprintf("%s = ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s = $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.NEQ:
-			query.WriteString(fmt.Sprintf("%s != ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s != $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.GT:
-			query.WriteString(fmt.Sprintf("%s > ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s > $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.LT:
-			query.WriteString(fmt.Sprintf("%s < ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s < $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.GTE:
-			query.WriteString(fmt.Sprintf("%s >= ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s >= $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.LTE:
-			query.WriteString(fmt.Sprintf("%s <= ?", fc.Attribute))
+			query.WriteString(fmt.Sprintf("%s <= $%d", fc.Attribute, placeholderCount))
+			placeholderCount++
 			params = append(params, fc.Value)
 		case store.IN:
 			// You can't just pass an array in as a param for sqlite
@@ -57,7 +70,8 @@ func filterToQueryParams(filter store.Filter) (string, []interface{}, error) {
 				if i != 0 {
 					placeholder.WriteString(", ")
 				}
-				placeholder.WriteString("?")
+				placeholder.WriteString(fmt.Sprintf("$%d", placeholderCount))
+				placeholderCount++
 				params = append(params, rv.Index(i).Interface())
 			}
 

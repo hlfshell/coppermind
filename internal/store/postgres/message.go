@@ -46,8 +46,8 @@ func (store *PostgresStore) saveArtifactData(data []*artifacts.ArtifactData) err
 
 	query := `INSERT INTO {0} ({1}) VALUES {2}`
 
-	// We need a (?, ?, ?, ?, ?) for each artifact data, with a comma
-	// between each set of values
+	// We need a ($1, $2, $3, $4, $5) for each artifact data, with a comma
+	// between each set of values and obviously increasing over time
 	placeholders := ""
 	for i := 0; i < len(data); i++ {
 		if i > 0 {
@@ -227,7 +227,7 @@ func (store *PostgresStore) GetConversation(conversation string) (*chat.Conversa
 }
 
 func (store *PostgresStore) DeleteConversation(conversation string) error {
-	query := `DELETE FROM {0} WHERE conversation = ?`
+	query := `DELETE FROM {0} WHERE conversation = $1`
 
 	query = stringFormatter.Format(query, MESSAGES_TABLE)
 
@@ -413,8 +413,8 @@ func (store *PostgresStore) GetLatestConversation(agent string, user string) (st
 		MAX(created_at) as latest_message
 	FROM {0}
 	WHERE
-		agent = ? AND
-		user = ?
+		agent = $1 AND
+		userId = $2
 	GROUP BY conversation
 	ORDER BY latest_message DESC
 	LIMIT 1;
@@ -429,19 +429,11 @@ func (store *PostgresStore) GetLatestConversation(agent string, user string) (st
 
 	defer row.Close()
 
-	var timestring sql.NullString
 	var timestamp time.Time
 	var conversation sql.NullString
 
 	for row.Next() {
-		err = row.Scan(&conversation, &timestring)
-		if err != nil {
-			return "", time.Time{}, err
-		}
-		if !conversation.Valid || !timestring.Valid {
-			return "", time.Time{}, nil
-		}
-		timestamp, err = store.sqlTimestampToTime(timestring.String)
+		err = row.Scan(&conversation, &timestamp)
 		if err != nil {
 			return "", time.Time{}, err
 		}
@@ -457,7 +449,6 @@ func (store *PostgresStore) sqlToMessages(rows *sql.Rows) ([]*chat.Message, erro
 
 	for rows.Next() {
 		var msg chat.Message
-		var datetime string
 		err := rows.Scan(
 			&msg.ID,
 			&msg.Conversation,
@@ -465,16 +456,11 @@ func (store *PostgresStore) sqlToMessages(rows *sql.Rows) ([]*chat.Message, erro
 			&msg.Agent,
 			&msg.From,
 			&msg.Content,
-			&datetime,
+			&msg.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		timestamp, err := store.sqlTimestampToTime(datetime)
-		if err != nil {
-			return nil, err
-		}
-		msg.CreatedAt = timestamp
 		messages = append(messages, &msg)
 	}
 
@@ -488,22 +474,16 @@ func (store *PostgresStore) sqlToArtifacts(rows *sql.Rows) ([]artifacts.Artifact
 
 	for rows.Next() {
 		var data artifacts.ArtifactData
-		var datetime string
 		err := rows.Scan(
 			&data.ID,
 			&data.Message,
 			&data.Type,
 			&data.Data,
-			&datetime,
+			&data.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		createdAt, err := store.sqlTimestampToTime(datetime)
-		if err != nil {
-			return nil, err
-		}
-		data.CreatedAt = createdAt
 		artifactData = append(artifactData, data)
 	}
 	return artifactData, nil

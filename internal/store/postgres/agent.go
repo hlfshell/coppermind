@@ -8,7 +8,7 @@ import (
 const agentSelectColumns = `id, name, identity`
 
 func (store *PostgresStore) SaveAgent(agent *agents.Agent) error {
-	query := `INSERT INTO {0} ({1}) VALUES(?, ?, ?)`
+	query := `INSERT INTO {0} ({1}) VALUES($1, $2, $3)`
 
 	query = stringFormatter.Format(query, AGENTS_TABLE, agentSelectColumns)
 
@@ -23,7 +23,7 @@ func (store *PostgresStore) SaveAgent(agent *agents.Agent) error {
 }
 
 func (store *PostgresStore) GetAgent(id string) (*agents.Agent, error) {
-	query := `SELECT {0} FROM {1} WHERE id = ?`
+	query := `SELECT {0} FROM {1} WHERE id = $1`
 
 	query = stringFormatter.Format(query, agentSelectColumns, AGENTS_TABLE)
 
@@ -47,7 +47,7 @@ func (store *PostgresStore) GetAgent(id string) (*agents.Agent, error) {
 }
 
 func (store *PostgresStore) DeleteAgent(id string) error {
-	query := `DELETE FROM {0} WHERE id = ?`
+	query := `DELETE FROM {0} WHERE id = $1`
 
 	query = stringFormatter.Format(query, AGENTS_TABLE)
 
