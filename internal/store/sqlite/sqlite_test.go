@@ -43,12 +43,13 @@ func TestLowLevelSqlite(t *testing.T) {
 		"ListSummaries":                  storeTest.ListSummaries,
 	}
 
-	for name, test := range tests {
+	for name, _ := range tests {
 		t.Run("TestLowLevelSqlite"+name, func(t *testing.T) {
+			t.Parallel()
 			sqlite, err := createSqlLiteStore()
 
 			require.Nil(t, err)
-			test(t, sqlite)
+			tests[name](t, sqlite)
 		})
 	}
 }
@@ -62,12 +63,13 @@ func TestSqlite(t *testing.T) {
 		// "SetConversationAsKnowledgeExtracted": storeTest.SetConversationAsKnowledgeExtracted,
 	}
 
-	for name, test := range tests {
+	for name, _ := range tests {
 		t.Run("TestSqlite"+name, func(t *testing.T) {
+			t.Parallel()
 			sqlite, err := createSqlLiteStore()
 
 			require.Nil(t, err)
-			test(t, sqlite)
+			tests[name](t, sqlite)
 		})
 	}
 }
