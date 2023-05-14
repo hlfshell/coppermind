@@ -57,7 +57,7 @@ func (store *SqliteStore) saveArtifactData(data []*artifacts.ArtifactData) error
 	}
 
 	query = stringFormatter.Format(query, ARTIFACTS_TABLE, artifactDataSelectColumns, placeholders)
-	fmt.Println(">>", query, data[0].ID, data[0].Message)
+
 	// Now we need to flatten the data into a single array of values
 	values := []interface{}{}
 	for _, artifact := range data {
