@@ -28,7 +28,7 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
-func NewSqliteStore(username string, password, host string, port string, database string) (*PostgresStore, error) {
+func NewPostgresStore(username string, password string, host string, port string, database string) (*PostgresStore, error) {
 	connectionString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", username, password, host, port, database)
 
 	db, err := sql.Open("postgres", connectionString)
