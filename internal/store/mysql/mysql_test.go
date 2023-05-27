@@ -55,22 +55,22 @@ func TestMysql(t *testing.T) {
 
 // func TestLowLevelSqlite(t *testing.T) {
 // 	tests := map[string]func(t *testing.T, store store.LowLevelStore){
-// 		"SaveAndGetUser":                 storeTest.SaveAndCreatetUser,
-// 		"GetUserAuth":                    storeTest.GetUserAuth,
-// 		"GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
-// 		"ResetPassword":                  storeTest.ResetPassword,
-// 		"DeleteUser":                     storeTest.DeleteUser,
-// 		"SaveAndGetMessage":              storeTest.SaveAndGetMessage,
-// 		"DeleteMessage":                  storeTest.DeleteMessage,
-// 		"ListMessages":                   storeTest.ListMessages,
-// 		"GetConversation":                storeTest.GetAndDeleteConversation,
-// 		"ListConversation":               storeTest.ListConversations,
-// 		"SaveAndGetAgent":                storeTest.SaveAndGetAgent,
-// 		"DeleteAgent":                    storeTest.DeleteAgent,
-// 		"ListAgents":                     storeTest.ListAgents,
-// 		"SaveAndGetSummary":              storeTest.SaveAndGetSummary,
-// 		"DeleteSummary":                  storeTest.DeleteSummary,
-// 		"ListSummaries":                  storeTest.ListSummaries,
+// 		"SaveAndGetUser": storeTest.SaveAndCreatetUser,
+// 		// "GetUserAuth":                    storeTest.GetUserAuth,
+// 		// "GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
+// 		// "ResetPassword":                  storeTest.ResetPassword,
+// 		// "DeleteUser":                     storeTest.DeleteUser,
+// 		// "SaveAndGetMessage":              storeTest.SaveAndGetMessage,
+// 		// "DeleteMessage":                  storeTest.DeleteMessage,
+// 		// "ListMessages":                   storeTest.ListMessages,
+// 		// "GetConversation":                storeTest.GetAndDeleteConversation,
+// 		// "ListConversation":               storeTest.ListConversations,
+// 		// "SaveAndGetAgent":                storeTest.SaveAndGetAgent,
+// 		// "DeleteAgent":                    storeTest.DeleteAgent,
+// 		// "ListAgents":                     storeTest.ListAgents,
+// 		// "SaveAndGetSummary":              storeTest.SaveAndGetSummary,
+// 		// "DeleteSummary":                  storeTest.DeleteSummary,
+// 		// "ListSummaries":                  storeTest.ListSummaries,
 // 	}
 
 // 	for name, _ := range tests {
