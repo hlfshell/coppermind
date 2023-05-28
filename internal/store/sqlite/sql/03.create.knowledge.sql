@@ -3,16 +3,19 @@ CREATE TABLE IF NOT EXISTS
         id TEXT NOT NULL PRIMARY KEY,
         agent TEXT NOT NULL,
         user TEXT NOT NULL,
-        subject TEXT NOT NULL,
-        predicate TEXT NOT NULL,
-        object TEXT NOT NULL,
+        source TEXT NOT NULL,
+        content TEXT NOT NULL,
+        metadata BLOB,
+        vector BLOB,
         created_at TIMESTAMP NOT NULL DEFAULT NOW,
-        expires_at TIMESTAMP
+        last_utilized TIMESTAMP
     );
         
 CREATE UNIQUE INDEX IF NOT EXISTS knowledge_id_v1 ON Knowledge_V1(id);
 CREATE INDEX IF NOT EXISTS knowledge_agent_user_time_v1 ON Knowledge_V1(agent, user, created_at);
-CREATE INDEX IF NOT EXISTS knowledge_expiration_v1 ON Knowledge_V1(expires_at);
+CREATE INDEX IF NOT EXISTS knowledge_agent_user_time_v1 ON Knowledge_V1(agent, user, source, created_at);
+CREATE INDEX IF NOT EXISTS knowledge_agent_user_time_v1 ON Knowledge_V1(source, last_utilized, created_at);
+CREATE INDEX IF NOT EXISTS knowledge_expiration_v1 ON Knowledge_V1(last_utilized, created_at);
 
 CREATE TABLE IF NOT EXISTS
     KnowledgeExtraction_V1(

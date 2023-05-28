@@ -183,6 +183,7 @@ type LowLevelStore interface {
 
 	/*
 		ListSummaries will return all summaries in the store
+		that matches a given filter's criteria
 	*/
 	ListSummaries(query Filter) ([]*memory.Summary, error)
 
@@ -204,4 +205,25 @@ type LowLevelStore interface {
 	//===============================
 	// Knowledge
 	//===============================
+
+	/*
+		SaveKnowledge will upsert a given knowledge into the store.
+	*/
+	SaveKnowledge(knowledge *memory.Knowledge) error
+
+	/*
+		GetKnowledge will return a knowledge given its ID
+	*/
+	GetKnowledge(id string) (*memory.Knowledge, error)
+
+	/*
+		DeleteKnowledge will delete a knowledge given its ID
+	*/
+	DeleteKnowledge(id string) error
+
+	/*
+		ListKnowledge will return all knowledge in the store that
+		matches a filter's criteria
+	*/
+	ListKnowledge(query *KnowledgeFilter) ([]*memory.Knowledge, error)
 }

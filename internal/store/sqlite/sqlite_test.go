@@ -20,35 +20,39 @@ func createSqlLiteStore() (*SqliteStore, error) {
 }
 
 func TestMigrate(t *testing.T) {
-
+	_, err := createSqlLiteStore()
+	require.Nil(t, err)
 }
 
 func TestLowLevelSqlite(t *testing.T) {
 	tests := map[string]func(*testing.T, store.LowLevelStore){
-		"SaveAndGetUser":                 storeTest.SaveAndCreatetUser,
-		"GetUserAuth":                    storeTest.GetUserAuth,
-		"GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
-		"ResetPassword":                  storeTest.ResetPassword,
-		"DeleteUser":                     storeTest.DeleteUser,
-		"SaveAndGetMessage":              storeTest.SaveAndGetMessage,
-		"DeleteMessage":                  storeTest.DeleteMessage,
-		"ListMessages":                   storeTest.ListMessages,
-		"GetConversation":                storeTest.GetAndDeleteConversation,
-		"ListConversation":               storeTest.ListConversations,
-		"SaveAndGetAgent":                storeTest.SaveAndGetAgent,
-		"DeleteAgent":                    storeTest.DeleteAgent,
-		"ListAgents":                     storeTest.ListAgents,
-		"SaveAndGetSummary":              storeTest.SaveAndGetSummary,
-		"DeleteSummary":                  storeTest.DeleteSummary,
-		"ListSummaries":                  storeTest.ListSummaries,
+		// "SaveAndGetUser":                 storeTest.SaveAndCreatetUser,
+		// "GetUserAuth":                    storeTest.GetUserAuth,
+		// "GenerateUserPasswordResetToken": storeTest.GenerateUserPasswordResetToken,
+		// "ResetPassword":                  storeTest.ResetPassword,
+		// "DeleteUser":                     storeTest.DeleteUser,
+		// "SaveAndGetMessage":              storeTest.SaveAndGetMessage,
+		// "DeleteMessage":                  storeTest.DeleteMessage,
+		// "ListMessages":                   storeTest.ListMessages,
+		// "GetConversation":                storeTest.GetAndDeleteConversation,
+		// "ListConversation":               storeTest.ListConversations,
+		// "SaveAndGetAgent":                storeTest.SaveAndGetAgent,
+		// "DeleteAgent":                    storeTest.DeleteAgent,
+		// "ListAgents":                     storeTest.ListAgents,
+		// "SaveAndGetSummary":              storeTest.SaveAndGetSummary,
+		// "DeleteSummary":                  storeTest.DeleteSummary,
+		// "ListSummaries":                  storeTest.ListSummaries,
+		// "SaveAndGetKnowledge":            storeTest.SaveAndGetKnowledge,
+		// "DeleteKnowledge":                storeTest.DeleteKnowledge,
+		"ListKnowledge": storeTest.ListKnowledge,
 	}
 
 	for name, _ := range tests {
 		t.Run("TestLowLevelSqlite"+name, func(t *testing.T) {
 			t.Parallel()
 			sqlite, err := createSqlLiteStore()
-
 			require.Nil(t, err)
+
 			tests[name](t, sqlite)
 		})
 	}

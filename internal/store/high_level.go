@@ -82,12 +82,6 @@ type HighLevelStore interface {
 	// Knowledge
 	//===============================
 
-	/*
-		SaveKnowledge takes a given bit of knowledge and saves
-		it.
-	// */
-	// SaveKnowledge(knowledge *memory.Knowledge) error
-
 	// /*
 	// 	GetConversationsToExtractKnowledge grabs any updates
 	// 	to any conversation it can. It has less stringent rules
@@ -98,7 +92,7 @@ type HighLevelStore interface {
 	// GetConversationsToExtractKnowledge() ([]string, error)
 
 	// /*
-	// 	SetconversationAsKnowledgeExtracted marks a given conversation
+	// 	SetConversationAsKnowledgeExtracted marks a given conversation
 	// 	as having its knowledge extracted. This should prevent the
 	// 	conversation from being scanned again unless new messages are
 	// 	added
@@ -106,21 +100,8 @@ type HighLevelStore interface {
 	// SetConversationAsKnowledgeExtracted(conversation string) error
 
 	// /*
-	// 	GetKnowledgeByAgentAndUser will return all knowledge generated
-	// 	from conversation between the user and agent. Expired knowledge
-	// 	should not be included.
+	// 	MarkKnowledgeAsUtilized will mark the given knowledge IDs as
+	// 	pulled and utilized for a chat prompt.
 	// */
-	// GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error)
-
-	// /*
-	// 	GetKnowledgeGroupedByAgentAndUser will return all knowledge across
-	// 	all agents, but group by agent/user combination. Again, expired
-	// 	knowledge is not returned.
-	// */
-	// GetKnowledgeGroupedByAgentAndUser(agent string, user string) (map[string]map[string][]*memory.Knowledge, error)
-
-	// /*
-	// 	ExpireKnowledge erases all knowledge that should have been expired
-	// */
-	// ExpireKnowledge() error
+	// MarkKnowledgeAsUtilized(ids []string) error
 }

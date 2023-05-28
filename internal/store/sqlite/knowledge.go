@@ -2,63 +2,52 @@ package sqlite
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/hlfshell/coppermind/internal/store"
 	"github.com/hlfshell/coppermind/pkg/memory"
 	"github.com/wissance/stringFormatter"
 )
 
+const knowledgeColumns = `id, agent, user, source, content, metadata, vector, created_at, last_utilized`
+
 func (store *SqliteStore) SaveKnowledge(fact *memory.Knowledge) error {
-	query := `
-		INSERT INTO {0}
-		(
-			id,
-			agent,
-			user,
-			subject,
-			predicate,
-			object,
-			created_at,
-			expires_at
-		)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-	`
+	query := `INSERT INTO {0} ({1}) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
+	query = stringFormatter.Format(query, KNOWLEDGE_TABLE, knowledgeColumns)
 
-	_, err := store.db.Exec(
+	// Convert the metadata map[string]string to bytes
+	metadataBytes, err := json.Marshal(fact.Metadata)
+	if err != nil {
+		return err
+	}
+	vectorBytes, err := json.Marshal(fact.Vector)
+	if err != nil {
+		return err
+	}
+
+	_, err = store.db.Exec(
 		query,
 		fact.ID,
 		fact.Agent,
 		fact.User,
-		fact.Subject,
-		fact.Predicate,
-		fact.Object,
+		fact.Source,
+		fact.Content,
+		metadataBytes,
+		vectorBytes,
 		fact.CreatedAt,
-		fact.ExpiresAt,
+		fact.LastUtilized,
 	)
 
 	return err
 }
 
 func (store *SqliteStore) GetKnowledge(id string) (*memory.Knowledge, error) {
-	query := `
-		SELECT
-			id,
-			agent,
-			user,
-			subject,
-			predicate,
-			object,
-			created_at,
-			expires_at
-		FROM
-			{0}
-		WHERE
-			id = ?
-	`
+	query := `SELECT {0} FROM {1} WHERE id = ?`
 
-	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
+	query = stringFormatter.Format(query, knowledgeColumns, KNOWLEDGE_TABLE)
 
 	rows, err := store.db.Query(query, id)
 	if err != nil {
@@ -75,86 +64,88 @@ func (store *SqliteStore) GetKnowledge(id string) (*memory.Knowledge, error) {
 	return knowledge[0], nil
 }
 
-func (store *SqliteStore) GetKnowlegeByAgentAndUser(agent string, user string) ([]*memory.Knowledge, error) {
-	query := `
-		SELECT 
-			id,
-			agent,
-			user,
-			subject,
-			predicate,
-			object,
-			created_at,
-			expires_at
-		FROM
-			{0}
-		WHERE
-			user = ? AND agent = ?
-	`
+func (store *SqliteStore) DeleteKnowledge(id string) error {
+	query := `DELETE FROM {0} WHERE id = ?`
 
 	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
 
-	rows, err := store.db.Query(query, user, agent)
+	_, err := store.db.Exec(query, id)
+	return err
+}
+
+func (store *SqliteStore) ListKnowledge(filter *store.KnowledgeFilter) ([]*memory.Knowledge, error) {
+	query := `SELECT {0} FROM {1} `
+
+	params := []interface{}{}
+	if filter != nil && !filter.Empty() {
+		query += `WHERE `
+		clauseCount := 0
+		if filter.ID != nil {
+			query += `id = ? `
+			clauseCount++
+			params = append(params, filter.ID.Value)
+		}
+		if filter.Agent != nil {
+			if clauseCount > 0 {
+				query += `AND `
+			}
+			query += `agent = ? `
+			clauseCount++
+			params = append(params, filter.Agent.Value)
+		}
+		if filter.User != nil {
+			if clauseCount > 0 {
+				query += `AND `
+			}
+			query += `user = ? `
+			clauseCount++
+			params = append(params, filter.User.Value)
+		}
+		if filter.Source != nil {
+			if clauseCount > 0 {
+				query += `AND `
+			}
+			query += `source = ? `
+			clauseCount++
+			params = append(params, filter.Source.Value)
+		}
+		if filter.CreatedAt != nil {
+			if clauseCount > 0 {
+				query += `AND `
+			}
+			query += `created_at = ? `
+			clauseCount++
+			params = append(params, filter.CreatedAt.Value)
+		}
+		if filter.LastUtilized != nil {
+			if clauseCount > 0 {
+				query += `AND `
+			}
+			query += `last_utilized = ? `
+			params = append(params, filter.LastUtilized.Value)
+		}
+	}
+
+	query += `ORDER BY created_at `
+	if filter.OldestFirst {
+		query += `DESC `
+	} else {
+		query += `ASC `
+	}
+
+	if filter.Limit > 0 {
+		query += `LIMIT ? `
+		params = append(params, filter.Limit)
+	}
+
+	query = stringFormatter.Format(query, knowledgeColumns, KNOWLEDGE_TABLE)
+	fmt.Println(">>", query)
+	rows, err := store.db.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
 
 	return store.sqlToKnowledge(rows)
-}
-
-func (store *SqliteStore) ExpireKnowledge() error {
-	query := `
-		DELETE FROM {0}
-		WHERE
-			expires_at < ?
-	`
-
-	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
-
-	_, err := store.db.Exec(query, time.Now())
-	return err
-}
-
-func (store *SqliteStore) GetKnowledgeGroupedByAgentAndUser(agent string, user string) (map[string]map[string][]*memory.Knowledge, error) {
-	query := `
-		SELECT
-			id,
-			agent,
-			user,
-			subject,
-			predicate,
-			object,
-			created_at,
-			expires_at
-		FROM
-			{0}
-	`
-
-	query = stringFormatter.Format(query, KNOWLEDGE_TABLE)
-
-	rows, err := store.db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-
-	facts, err := store.sqlToKnowledge(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	knowledgebase := map[string]map[string][]*memory.Knowledge{}
-	for _, fact := range facts {
-		if _, ok := knowledgebase[fact.Agent]; !ok {
-			knowledgebase[fact.Agent] = map[string][]*memory.Knowledge{}
-		}
-		if _, ok := knowledgebase[fact.Agent][fact.User]; !ok {
-			knowledgebase[fact.Agent][fact.User] = []*memory.Knowledge{}
-		}
-
-		knowledgebase[fact.Agent][fact.User] = append(knowledgebase[fact.Agent][fact.User], fact)
-	}
-
-	return knowledgebase, nil
 }
 
 func (store *SqliteStore) GetConversationsToExtractKnowledge() ([]string, error) {
@@ -259,31 +250,47 @@ func (store *SqliteStore) sqlToKnowledge(rows *sql.Rows) ([]*memory.Knowledge, e
 
 	for rows.Next() {
 		var fact memory.Knowledge
-		var datetime string
-		var expiration string
+		var metadataBytes []byte
+		var vectorBytes []byte
+		var createdDatetime string
+		var lastUtilizedDatetime string
 		err := rows.Scan(
 			&fact.ID,
 			&fact.Agent,
 			&fact.User,
-			&fact.Subject,
-			&fact.Predicate,
-			&fact.Object,
-			&datetime,
-			&expiration,
+			&fact.Source,
+			&fact.Content,
+			&metadataBytes,
+			&vectorBytes,
+			&createdDatetime,
+			&lastUtilizedDatetime,
 		)
 		if err != nil {
 			return nil, err
 		}
-		timestamp, err := store.sqlTimestampToTime(datetime)
+
+		// Convert timestamps
+		timestamp, err := store.sqlTimestampToTime(createdDatetime)
 		if err != nil {
 			return nil, err
 		}
 		fact.CreatedAt = timestamp
-		timestamp, err = store.sqlTimestampToTime(expiration)
+		timestamp, err = store.sqlTimestampToTime(lastUtilizedDatetime)
 		if err != nil {
 			return nil, err
 		}
-		fact.ExpiresAt = timestamp
+		fact.LastUtilized = timestamp
+
+		// Convert bytes
+		err = json.Unmarshal(metadataBytes, &fact.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(vectorBytes, &fact.Vector)
+		if err != nil {
+			return nil, err
+		}
+
 		knowledge = append(knowledge, &fact)
 	}
 
