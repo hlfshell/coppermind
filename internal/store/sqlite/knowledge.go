@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hlfshell/coppermind/internal/store"
@@ -81,65 +82,72 @@ func (store *SqliteStore) ListKnowledge(filter *store.KnowledgeFilter) ([]*memor
 		query += `WHERE `
 		clauseCount := 0
 		if filter.ID != nil {
-			query += `id = ? `
+			clause, values := filterToWhereClause("id", filter.ID.Operation, filter.ID.Value)
+			query += clause
 			clauseCount++
-			params = append(params, filter.ID.Value)
+			params = append(params, values...)
 		}
 		if filter.Agent != nil {
 			if clauseCount > 0 {
 				query += `AND `
 			}
-			query += `agent = ? `
+			clause, values := filterToWhereClause("agent", filter.Agent.Operation, filter.Agent.Value)
+			query += clause
 			clauseCount++
-			params = append(params, filter.Agent.Value)
+			params = append(params, values...)
 		}
 		if filter.User != nil {
 			if clauseCount > 0 {
 				query += `AND `
 			}
-			query += `user = ? `
+			clause, values := filterToWhereClause("user", filter.User.Operation, filter.User.Value)
+			query += clause
 			clauseCount++
-			params = append(params, filter.User.Value)
+			params = append(params, values...)
 		}
 		if filter.Source != nil {
 			if clauseCount > 0 {
 				query += `AND `
 			}
-			query += `source = ? `
+			clause, values := filterToWhereClause("source", filter.Source.Operation, filter.Source.Value)
+			query += clause
 			clauseCount++
-			params = append(params, filter.Source.Value)
+			params = append(params, values...)
 		}
 		if filter.CreatedAt != nil {
 			if clauseCount > 0 {
 				query += `AND `
 			}
-			query += `created_at = ? `
+			clause, values := filterToWhereClause("created_at", filter.CreatedAt.Operation, filter.CreatedAt.Value)
+			query += clause
 			clauseCount++
-			params = append(params, filter.CreatedAt.Value)
+			params = append(params, values...)
 		}
 		if filter.LastUtilized != nil {
 			if clauseCount > 0 {
 				query += `AND `
 			}
-			query += `last_utilized = ? `
-			params = append(params, filter.LastUtilized.Value)
+			clause, values := filterToWhereClause("last_utilized", filter.LastUtilized.Operation, filter.LastUtilized.Value)
+			query += clause
+			params = append(params, values...)
 		}
 	}
 
 	query += `ORDER BY created_at `
-	if filter.OldestFirst {
+	if filter != nil && filter.OldestFirst {
 		query += `DESC `
 	} else {
 		query += `ASC `
 	}
 
-	if filter.Limit > 0 {
+	if filter != nil && filter.Limit > 0 {
 		query += `LIMIT ? `
 		params = append(params, filter.Limit)
 	}
 
 	query = stringFormatter.Format(query, knowledgeColumns, KNOWLEDGE_TABLE)
 	fmt.Println(">>", query)
+	fmt.Println(params)
 	rows, err := store.db.Query(query, params...)
 	if err != nil {
 		return nil, err
@@ -295,4 +303,26 @@ func (store *SqliteStore) sqlToKnowledge(rows *sql.Rows) ([]*memory.Knowledge, e
 	}
 
 	return knowledge, nil
+}
+
+func filterToWhereClause(attribute string, operation string, value interface{}) (string, []interface{}) {
+	placeholder := ""
+	values := []interface{}{}
+	if operation == "IN" {
+		splitValue := strings.Split(value.(string), ",")
+		placeholder += "("
+		for i := 0; i < len(splitValue); i++ {
+			placeholder += "?"
+			if i < len(splitValue)-1 {
+				placeholder += ", "
+			}
+			values = append(values, strings.TrimSpace(splitValue[i]))
+		}
+		placeholder += ")"
+	} else {
+		placeholder = "?"
+		values = append(values, value)
+	}
+
+	return fmt.Sprintf("%s %s %s ", attribute, operation, placeholder), values
 }

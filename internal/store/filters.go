@@ -20,13 +20,13 @@ It is expected that it is supported in some manner
 for all stores.
 */
 const (
-	EQ  = "=="
+	EQ  = "="
 	NEQ = "!="
 	GT  = ">"
 	LT  = "<"
 	GTE = ">="
 	LTE = "<="
-	IN  = "in"
+	IN  = "IN"
 )
 
 /*

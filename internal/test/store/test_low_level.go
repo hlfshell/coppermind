@@ -738,3 +738,277 @@ func DeleteUser(t *testing.T, store store.LowLevelStore) {
 	require.Nil(t, err)
 	assert.Nil(t, readUser)
 }
+
+// ===============================
+// Knowledge
+// ===============================
+
+func SaveAndGetKnowledge(t *testing.T, store store.LowLevelStore) {
+	knowledge := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    uuid.New().String(),
+		Agent:   uuid.New().String(),
+		Content: "Has anyone really been far even as decided to use even go want to do look more like?",
+		Metadata: map[string]string{
+			"foo":   "bar",
+			"hello": "world",
+		},
+		CreatedAt: time.Now(),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7},
+	}
+
+	// Ensure the knowledge is not yet there
+	readKnowledge, err := store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readKnowledge)
+
+	// Write the knowledge...
+	err = store.SaveKnowledge(knowledge)
+	require.Nil(t, err)
+
+	// And recall it
+	readKnowledge, err = store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	require.NotNil(t, readKnowledge)
+	assert.True(t, knowledge.Equal(readKnowledge))
+
+	// Ensure that updating it and writing it with the new information
+	// works
+	knowledge.Content = "A good wisdom: If your ball is too big for your mouth, it's not yours."
+	knowledge.Metadata["foo"] = "baz"
+
+	err = store.SaveKnowledge(knowledge)
+	require.Nil(t, err)
+
+	readKnowledge, err = store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	require.NotNil(t, readKnowledge)
+}
+
+func DeleteKnowledge(t *testing.T, store store.LowLevelStore) {
+	knowledge := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    uuid.New().String(),
+		Agent:   uuid.New().String(),
+		Content: "The term for a group of people who do not immediately kick nazis out of their presence is 'nazis'.",
+		Metadata: map[string]string{
+			"foo":   "bar",
+			"hello": "world",
+		},
+		CreatedAt: time.Now(),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7},
+	}
+
+	// Ensure the knowledge is not yet there
+	readKnowledge, err := store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readKnowledge)
+
+	// Write the knowledge...
+	err = store.SaveKnowledge(knowledge)
+	require.Nil(t, err)
+
+	// And recall it
+	readKnowledge, err = store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	require.NotNil(t, readKnowledge)
+	require.True(t, knowledge.Equal(readKnowledge))
+
+	// Delete it
+	err = store.DeleteKnowledge(knowledge.ID)
+	require.Nil(t, err)
+
+	// And ensure it's gone
+	readKnowledge, err = store.GetKnowledge(knowledge.ID)
+	require.Nil(t, err)
+	assert.Nil(t, readKnowledge)
+}
+
+func ListKnowledge(t *testing.T, s store.LowLevelStore) {
+	// Create a set of knowledge for two different agents, two
+	// different agents, and varying creation times for search.
+	user1 := uuid.New().String()
+	user2 := uuid.New().String()
+	agent1 := uuid.New().String()
+	agent2 := uuid.New().String()
+
+	knowledge1 := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    user1,
+		Agent:   agent1,
+		Source:  "conversation",
+		Content: "The best proof of extraterrestrial intelligence is that they haven't contacted us",
+		Metadata: map[string]string{
+			"Spaceman":      "Spiff",
+			"Cardboard Box": "Transmorgrifier",
+		},
+		CreatedAt: time.Now().Add(-time.Hour * 24 * 7),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+	}
+	knowledge2 := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    user1,
+		Agent:   agent2,
+		Source:  "document",
+		Content: "The question is not whether you will love, hurt, dream, and die. It is what you will love, why you will hurt, when you will dream, and how you will die. This is your choice. You cannot pick the destination, only the path.",
+		Metadata: map[string]string{
+			"Shallan": "Is a bit of a nerd",
+			"Adolin":  "Is a himbo",
+		},
+		CreatedAt: time.Now().Add(-time.Hour * 24 * 3),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+	}
+	knowledge3 := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    user2,
+		Agent:   agent1,
+		Source:  "document",
+		Content: "Moments of beauty sustain us through hours of ugliness",
+		Metadata: map[string]string{
+			"Kip":        "fat",
+			"Blackguard": "cool",
+		},
+		CreatedAt: time.Now().Add(-time.Hour * 24 * 2),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+	}
+	knowledge4 := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    user2,
+		Agent:   agent2,
+		Source:  "conversation",
+		Content: "Stick them with the pointy end",
+		Metadata: map[string]string{
+			"Book": "better",
+			"Arya": "bestest",
+		},
+		CreatedAt: time.Now().Add(-time.Hour * 24 * 1),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+	}
+	knowledge5 := &memory.Knowledge{
+		ID:      uuid.New().String(),
+		User:    user1,
+		Agent:   agent1,
+		Source:  "user-generated",
+		Content: "The man who wants you to trust him is the one you must fear the most",
+		Metadata: map[string]string{
+			"Ash": "fell from the sky",
+		},
+		CreatedAt: time.Now(),
+		Vector:    []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+	}
+
+	// Create and save all the knowledge pieces
+	// They should be in order of oldest to newest
+	knowledges := []*memory.Knowledge{knowledge1, knowledge2, knowledge3, knowledge4, knowledge5}
+	for _, knowledge := range knowledges {
+		err := s.SaveKnowledge(knowledge)
+		require.Nil(t, err)
+	}
+
+	// First ensure that a blank filter and a nil filter return all knowledge
+	foundKnowledge, err := s.ListKnowledge(&store.KnowledgeFilter{})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, len(knowledges))
+	assert.True(t, knowledge1.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge2.Equal(foundKnowledge[1]))
+	assert.True(t, knowledge3.Equal(foundKnowledge[2]))
+	assert.True(t, knowledge4.Equal(foundKnowledge[3]))
+	assert.True(t, knowledge5.Equal(foundKnowledge[4]))
+
+	foundKnowledge, err = s.ListKnowledge(nil)
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, len(knowledges))
+	assert.True(t, knowledge1.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge2.Equal(foundKnowledge[1]))
+	assert.True(t, knowledge3.Equal(foundKnowledge[2]))
+	assert.True(t, knowledge4.Equal(foundKnowledge[3]))
+	assert.True(t, knowledge5.Equal(foundKnowledge[4]))
+
+	// Test the ascending flag - we should get it in reverse order
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{OldestFirst: true})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, len(knowledges))
+	assert.True(t, knowledge5.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge4.Equal(foundKnowledge[1]))
+	assert.True(t, knowledge3.Equal(foundKnowledge[2]))
+	assert.True(t, knowledge2.Equal(foundKnowledge[3]))
+	assert.True(t, knowledge1.Equal(foundKnowledge[4]))
+
+	// Then we filter by the user and the agent
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		User:  &store.FilterString{Operation: store.EQ, Value: user1},
+		Agent: &store.FilterString{Operation: store.EQ, Value: agent1},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 2)
+	assert.True(t, knowledge1.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge5.Equal(foundKnowledge[1]))
+
+	// Try to further narrow it by using an IN filter w/ source
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		User:   &store.FilterString{Operation: store.EQ, Value: user1},
+		Source: &store.FilterString{Operation: store.IN, Value: "conversation, user-generated"},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 2)
+	assert.True(t, knowledge1.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge5.Equal(foundKnowledge[1]))
+
+	// Test the limit function
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		User:  &store.FilterString{Operation: store.EQ, Value: user2},
+		Limit: 2,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 2)
+	assert.True(t, knowledge3.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge4.Equal(foundKnowledge[1]))
+
+	// Another ascending test
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		User:        &store.FilterString{Operation: store.EQ, Value: user2},
+		Limit:       2,
+		OldestFirst: true,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 2)
+	assert.True(t, knowledge4.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge3.Equal(foundKnowledge[1]))
+
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		User:  &store.FilterString{Operation: store.EQ, Value: user2},
+		Limit: 1,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 1)
+	assert.True(t, knowledge3.Equal(foundKnowledge[0]))
+
+	// Test the time/created at filters
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		CreatedAt: &store.FilterTime{Operation: store.GT, Value: time.Now().Add((-time.Hour * 24 * 2) - time.Minute)},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 3)
+	assert.True(t, knowledge3.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge4.Equal(foundKnowledge[1]))
+	assert.True(t, knowledge5.Equal(foundKnowledge[2]))
+
+	foundKnowledge, err = s.ListKnowledge(&store.KnowledgeFilter{
+		CreatedAt: &store.FilterTime{Operation: store.LT, Value: time.Now().Add((-time.Hour * 24 * 2) + time.Minute)},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, foundKnowledge)
+	require.Len(t, foundKnowledge, 3)
+	assert.True(t, knowledge1.Equal(foundKnowledge[0]))
+	assert.True(t, knowledge2.Equal(foundKnowledge[1]))
+	assert.True(t, knowledge3.Equal(foundKnowledge[2]))
+}
